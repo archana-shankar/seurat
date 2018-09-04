@@ -51,6 +51,8 @@ NumericVector RowVar(Eigen::Map<Eigen::MatrixXd> x);
 int IntersectLength(std::vector<int> a, std::vector<int> b);
 int UnionLength(std::vector<int> a, std::vector<int> b, int intersect_length);
 std::vector<int> ToVector(Eigen::VectorXd v1);
+StringVector HashTableLookup(Environment ht, StringVector key);
+bool KeyInHashTable(Environment ht, std::string key);
 //----------------------------------------------------
 
 #endif//DATA_MANIPULATION

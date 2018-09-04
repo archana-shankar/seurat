@@ -499,3 +499,24 @@ std::vector<int> ToVector(Eigen::VectorXd v1){
   return(v2);
 }
 
+//[[Rcpp::export]]
+StringVector HashTableLookup(Environment ht, StringVector key) {
+  StringVector v = ht[Rcpp::as<std::string>(key[0])];
+  if (key.size() == 1) {
+    return(v);
+  } else {
+    for(int i=1; i<key.size(); ++i){
+      StringVector current_v = ht[Rcpp::as<std::string>(key[i])];
+      for(int j=0; j<current_v.size(); ++j){
+        v.push_back(current_v[j]);
+      }
+    }
+  }
+  return(unique(v));
+}
+
+//[[Rcpp::export]]
+bool KeyInHashTable(Environment ht, std::string key) {
+  return(ht.exists(key));
+}
+

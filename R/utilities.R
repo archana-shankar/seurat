@@ -651,8 +651,72 @@ ExtractField <- function(string, field = 1, delim = "_") {
   return(paste(strsplit(x = string, split = delim)[[1]][fields], collapse = delim))
 }
 
+# R interface for c++ function mapping a gene to ecs. Option to only return
+# unambiguously mapping ECs
+#
+# @param object      Seurat object
+# @param gene        Gene name
+# @param ensg        Gene given is an ensemble ID
+# @param ambig       whether to return ambiguously mapping ECs.
+#
+# @return returns a vector of ECs that map to the gene
+#
+GeneToECMap <- function(object, gene, ensg = FALSE, ambig = TRUE) {
+  return(
+    tryCatch(
+      GeneToECMapC(
+        gene = gene, 
+        ambig = ambig,
+        ensg = ensg,
+        ec_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ec.to.enst.map,
+        enst_to_ec = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ec.map,
+        enst_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ensg.map,
+        ensg_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.enst.map,
+        ensg_to_gene = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.gene.map,
+        gene_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$gene.to.ensg.map
+      ),
+      error = function(e) {
+        stop(paste0("Cannot find feature: ", gene, "\n  Note: ensg has been set to ", ensg))
+      }
+    )
+  )
+}
+
+
+# Initialize a hash table, implemented as an environment
+#
+# @return returns an empty environment to use as hash table
+HashTable <- function() new.env(hash = TRUE)
+
+# Add an element into a given hash table. Will check if key already exists. If
+# exists, append value onto existing values
+#
+# @param key    Key of value to insert
+# @param value  Value to insert
+# @param ht     Hash table to insert into
+#
+# @return returns hash table with key-value pair added in
+#
+HashTableAdd <- function(key, value, ht) {
+  if(! KeyInHashTable(ht = ht, key = key)) {
+    ht[[key]] <- value
+  } else {
+    ht[[key]] <- c(ht[[key]], value)
+  }
+}
+
+# Insert an element into a given hash table
+#
+# @param key    Key of value to insert
+# @param value  Value to insert
+# @param ht     Hash table to insert into
+#
+# @return returns hash table with key-value pair added in
+#
+HashTableInsert <- function(key, value, ht)  ht[[key]] <- value
+
 # Documentation
-#Internal, not documented for now
+# Internal, not documented for now
 #
 LassoFxn <- function(
   lasso.input,
@@ -947,6 +1011,47 @@ RowMergeSparseMatrices <- function(mat1, mat2){
 #
 Same <- function(x) {
   return(x)
+}
+
+# R interface for c++ function to perform mapping functions for TCC data.
+# Specify to and from.type as EC (equivalence class), ENST (transcript name),
+# ENSG (ensemble gene name), GENE (gene name)
+#
+# @param from        Value to map from - should be a string.
+# @param from.type   Type to map from - one of the following: EC, ENST, ENSG, GENE
+# @param to          Type to map to - one of the following: EC, ENST, ENSG, GENE
+#
+# @return returns either a vector of mapped values or matrix with mapping info
+#
+TCCMap <- function(object, from, from.type, to) {
+  if(length(x = from) > 1){
+    stop("from must be of length 1")
+  }
+  if (!from.type %in% c("EC", "ENST", "ENSG", "GENE")) {
+    stop("Invalid from.type argument")
+  }
+  if (!to %in% c("EC", "ENST", "ENSG", "GENE")) {
+    stop("Invalid to argument")
+  }
+  
+  return(
+    tryCatch(
+      TCCMapC(
+        from = from, 
+        from_type = from.type, 
+        to = to,
+        ec_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ec.to.enst.map,
+        enst_to_ec = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ec.map,
+        enst_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ensg.map,
+        ensg_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.enst.map,
+        ensg_to_gene = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.gene.map,
+        gene_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$gene.to.ensg.map
+      ),
+      error = function(e) {
+        stop(paste0("Cannot find the mapping from the ", from.type, " ", from, " to ", to))
+      }
+    )
+  )
 }
 
 # Try to convert x to numeric, if NA's introduced return x as is

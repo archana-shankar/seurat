@@ -84,4 +84,6 @@ Suggests:
     SingleCellExperiment,
     MAST,
     DESeq2,
-    destiny
+    destiny,
+    biomaRt
+    

@@ -254,6 +254,7 @@ FindMarkers.default <- function(
   cells.1 = NULL,
   cells.2 = NULL,
   features = NULL,
+  tcc = FALSE,
   logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
@@ -269,7 +270,7 @@ FindMarkers.default <- function(
   ...
 ) {
   features <- features %||% rownames(object)
-  methods.noprefiliter <- c("DESeq2", "zingeR")
+  methods.noprefiliter <- c("DESeq2")
   if (test.use %in% methods.noprefiliter) {
     features <- rownames(object)
     min.diff.pct <- -Inf
@@ -284,71 +285,75 @@ FindMarkers.default <- function(
     message(paste("Cell group 2 is empty - no cells with identity class", cells.2))
     return(NULL)
   }
-  if (length(cells.1) < min.cells.group) {
-    stop(paste("Cell group 1 has fewer than", as.character(min.cells.group), "cells"))
+  if (length(x = cells.1) < min.cells.group) {
+    stop(paste("Cell group 1 has fewer than", as.character(x = min.cells.group), "cells"))
   }
-  if (length(cells.2) < min.cells.group) {
-    stop(paste("Cell group 2 has fewer than", as.character(min.cells.group), " cells"))
+  if (length(x = cells.2) < min.cells.group) {
+    stop(paste("Cell group 2 has fewer than", as.character(x = min.cells.group), " cells"))
   }
-  if(any(!cells.1 %in% colnames(object))) {
+  if(any(!cells.1 %in% colnames(x = object))) {
     bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
     stop(paste0("The following cell names provided to cells.1 are not present: ", paste(bad.cells, collapse = ", ")))
   }
-  if(any(!cells.2 %in% colnames(object))) {
-    bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
+  if(any(!cells.2 %in% colnames(x = object))) {
+    bad.cells <- colnames(x = object)[which(!as.character(x = cells.2) %in% colnames(x = object))]
     stop(paste0("The following cell names provided to cells.2 are not present: ", paste(bad.cells, collapse = ", ")))
   }
-
-  # feature selection (based on percentages)
-  thresh.min <- 0
-  pct.1 <- round(
-    x = apply(
-      X = object[features, cells.1, drop = F],
-      MARGIN = 1,
-      FUN = function(x) {
-        return(sum(x > thresh.min) / length(x = x))
-      }
-    ),
-    digits = 3
-  )
-  pct.2 <- round(
-    x = apply(
-      X = object[features, cells.2, drop = F],
-      MARGIN = 1,
-      FUN = function(x) {
-        return(sum(x > thresh.min) / length(x = x))
-      }
-    ),
-    digits = 3
-  )
-  data.alpha <- cbind(pct.1, pct.2)
-  colnames(x = data.alpha) <- c("pct.1", "pct.2")
-  alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
-  names(x = alpha.min) <- rownames(x = data.alpha)
-  features <- names(x = which(x = alpha.min > min.pct))
-  if (length(x = features) == 0) {
-    stop("No features pass min.pct threshold")
-  }
-  alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
-  features <- names(
-    x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
-  )
-  if (length(x = features) == 0) {
-    stop("No features pass min.diff.pct threshold")
-  }
-  # gene selection (based on average difference)
-  data.1 <- apply(X = object[features, cells.1, drop = F],
-                  MARGIN = 1,
-                  FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
-  data.2 <- apply(X = object[features, cells.2, drop = F],
-                  MARGIN = 1,
-                  FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
-  total.diff <- (data.1 - data.2)
-  if (!only.pos) features.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
-  if (only.pos) features.diff <- names(x = which(x = total.diff > logfc.threshold))
-  features <- intersect(x = features, y = features.diff)
-  if (length(x = features) == 0) {
-    stop("No features pass logfc.threshold threshold")
+  features.test <- features
+  if (tcc) {
+    features <- rownames(x = object)
+  } else {
+    # feature selection (based on percentages)
+    thresh.min <- 0
+    pct.1 <- round(
+      x = apply(
+        X = object[features, cells.1, drop = FALSE],
+        MARGIN = 1,
+        FUN = function(x) {
+          return(sum(x > thresh.min) / length(x = x))
+        }
+      ),
+      digits = 3
+    )
+    pct.2 <- round(
+      x = apply(
+        X = object[features, cells.2, drop = FALSE],
+        MARGIN = 1,
+        FUN = function(x) {
+          return(sum(x > thresh.min) / length(x = x))
+        }
+      ),
+      digits = 3
+    )
+    data.alpha <- cbind(pct.1, pct.2)
+    colnames(x = data.alpha) <- c("pct.1", "pct.2")
+    alpha.min <- apply(X = data.alpha, MARGIN = 1, FUN = max)
+    names(x = alpha.min) <- rownames(x = data.alpha)
+    features <- names(x = which(x = alpha.min > min.pct))
+    if (length(x = features) == 0) {
+      stop("No features pass min.pct threshold")
+    }
+    alpha.diff <- alpha.min - apply(X = data.alpha, MARGIN = 1, FUN = min)
+    features <- names(
+      x = which(x = alpha.min > min.pct & alpha.diff > min.diff.pct)
+    )
+    if (length(x = features) == 0) {
+      stop("No features pass min.diff.pct threshold")
+    }
+    # feature selection (based on average difference)
+    data.1 <- apply(X = object[features, cells.1, drop = FALSE],
+                    MARGIN = 1,
+                    FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+    data.2 <- apply(X = object[features, cells.2, drop = FALSE],
+                    MARGIN = 1,
+                    FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+    total.diff <- (data.1 - data.2)
+    if (!only.pos) features.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
+    if (only.pos) features.diff <- names(x = which(x = total.diff > logfc.threshold))
+    features <- intersect(x = features, y = features.diff)
+    if (length(x = features) == 0) {
+      stop("No features pass logfc.threshold threshold")
+    }
   }
   if (max.cells.per.ident < Inf) {
     set.seed(seed = random.seed)
@@ -425,24 +430,28 @@ FindMarkers.default <- function(
       data.use = object[features, c(cells.1, cells.2)],
       cells.1 = cells.1,
       cells.2 = cells.2,
+      tcc = tcc,
+      features = features.test,
       latent.vars = latent.vars,
       verbose = verbose
     ),
     stop("Unknown test: ", test.use)
   )
-  de.results[, "avg_logFC"] <- total.diff[rownames(x = de.results)]
-  de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
-  de.results$p_val_adj = p.adjust(
-    p = de.results$p_val,method = "bonferroni",
-    n = nrow(object)
-  )
-  if (test.use == "roc") {
-    de.results <- de.results[order(-de.results$power, -de.results$avg_logFC), ]
-  } else {
-    de.results <- de.results[order(de.results$p_val, -de.results$avg_logFC), ]
-  }
-  if (only.pos) {
-    de.results <- subset(x = de.results, subset = avg_logFC > 0)
+  if (!tcc) {
+    de.results[, "avg_logFC"] <- total.diff[rownames(x = de.results)]
+    de.results <- cbind(de.results, data.alpha[rownames(x = de.results), , drop = FALSE])
+    de.results$p_val_adj = p.adjust(
+      p = de.results$p_val,method = "bonferroni",
+      n = nrow(x = object)
+    )
+    if (test.use == "roc") {
+      de.results <- de.results[order(-de.results$power, -de.results$avg_logFC), ]
+    } else {
+      de.results <- de.results[order(de.results$p_val, -de.results$avg_logFC), ]
+    }
+    if (only.pos) {
+      de.results <- subset(x = de.results, subset = avg_logFC > 0)
+    }
   }
   return(de.results)
 }
@@ -463,6 +472,9 @@ FindMarkers.Seurat <- function(
   ident.2 = NULL,
   assay = NULL,
   features = NULL,
+  tcc = FALSE,
+  ensg = FALSE,
+  ambig.tccs = FALSE,
   logfc.threshold = 0.25,
   test.use = "wilcox",
   min.pct = 0.1,
@@ -480,7 +492,10 @@ FindMarkers.Seurat <- function(
   assay <- assay %||% DefaultAssay(object = object)
   data.slot <- "data"
   if (test.use %in% c("negbinom", "poisson", "DESeq2")) {
-    data.slot <- "raw.data"
+    data.slot <- "counts"
+  }
+  if (test.use == "LR" && tcc) {
+    data.slot <- "counts"
   }
   data.use <- GetAssayData(object = object[[assay]], slot = data.slot)
   if (is.null(ident.1)) {
@@ -516,11 +531,21 @@ FindMarkers.Seurat <- function(
       cells = c(ident.1, ident.2)
     )
   }
+  if (tcc) {
+    features.list<- lapply(
+      X = features, 
+      FUN = function(x) {
+        GeneToECMap(object = object, gene = x, ensg = ensg, ambig = ambig.tccs)
+      })
+    names(x = features.list) <- features
+    features <- features.list
+  }
   de.results <- FindMarkers(
     object = data.use,
     cells.1 = ident.1,
     cells.2 = ident.2,
     features = features,
+    tcc = tcc,
     logfc.threshold = logfc.threshold,
     test.use = test.use,
     min.pct = min.pct,
@@ -889,6 +914,8 @@ LRDETest <- function(
   data.use,
   cells.1,
   cells.2,
+  tcc = FALSE,
+  features,
   latent.vars = NULL,
   verbose = TRUE,
   ...
@@ -900,26 +927,53 @@ LRDETest <- function(
   data.use <- data.use[, rownames(group.info)]
   latent.vars <- latent.vars[rownames(group.info), , drop = FALSE]
   mysapply <- if (verbose) {pbsapply} else {sapply}
-  p_val <- mysapply(
-    X = 1:nrow(x = data.use),
-    FUN = function(x) {
-      if(is.null(x = latent.vars)) {
-        model.data <- cbind(GENE = data.use[x, ], group.info)
-        fmla <- as.formula(paste0("group  ~ GENE"))
-        fmla2 <- as.formula("group ~ 1")
-      } else {
-        model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
-        fmla <- as.formula(paste0("group  ~ GENE + ", paste(colnames(x = latent.vars), collapse = "+")))
-        fmla2 <- as.formula(paste0("group ~ ", paste(colnames(x = latent.vars), collapse = "+")))
+  if (tcc) {
+     if (verbose) {message("Running LR using TCCs")}
+    p_val <- mysapply(
+      X = features,
+      FUN = function(feature) {
+        data.test <- as.matrix(x = t(x = data.use[feature, ]))
+        LRLRTest(data.groups = group.info, data.test = data.test)
       }
-      model1 <- glm(formula = fmla, data = model.data, family = "binomial")
-      model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
-      lrtest <- lrtest(model1, model2)
-      return(lrtest$Pr[2])
-    }
-  )
-  to.return <- data.frame(p_val, row.names = rownames(data.use))
+    )
+    to.return <- data.frame(p_val, row.names = names(x = features))
+  } else {
+    if (verbose) {message("Running LR using gene counts")}
+    p_val <- mysapply(
+      X = 1:nrow(x = data.use),
+      FUN = function(x) {
+        if(is.null(x = latent.vars)) {
+          model.data <- cbind(GENE = data.use[x, ], group.info)
+          fmla <- as.formula(paste0("group  ~ GENE"))
+          fmla2 <- as.formula("group ~ 1")
+        } else {
+          model.data <- cbind(GENE = data.use[x, ], group.info, latent.vars)
+          fmla <- as.formula(paste0("group  ~ GENE + ", paste(colnames(x = latent.vars), collapse = "+")))
+          fmla2 <- as.formula(paste0("group ~ ", paste(colnames(x = latent.vars), collapse = "+")))
+        }
+        model1 <- glm(formula = fmla, data = model.data, family = "binomial")
+        model2 <- glm(formula = fmla2, data = model.data, family = "binomial")
+        lrtest <- lrtest(model1, model2)
+        return(lrtest$Pr[2])
+      }
+    )
+    to.return <- data.frame(p_val, row.names = rownames(data.use))
+  }
   return(to.return)
+}
+
+# Likelihood ratio test for logistic regression models
+#
+# @param data.groups        data.frame specifying the identity classes to test
+# @param data.test          matrix with the predictors
+#
+# @return                   Returns the p-value from the likelihood ratio test
+
+LRLRTest <- function(data.groups, data.test){
+  model1 <- glm(data.groups$group ~ data.test, family = "binomial")
+  model2 <- glm(data.groups$group ~ 1, family = "binomial")
+  lr <- lrtest(model1, model2)
+  return(lr$Pr[2])
 }
 
 # ROC-based marker discovery

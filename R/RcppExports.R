@@ -81,6 +81,14 @@ RowVar <- function(x) {
     .Call('_Seurat_RowVar', PACKAGE = 'Seurat', x)
 }
 
+HashTableLookup <- function(ht, key) {
+    .Call('_Seurat_HashTableLookup', PACKAGE = 'Seurat', ht, key)
+}
+
+KeyInHashTable <- function(ht, key) {
+    .Call('_Seurat_KeyInHashTable', PACKAGE = 'Seurat', ht, key)
+}
+
 RunModularityClusteringCpp <- function(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename) {
     .Call('_Seurat_RunModularityClusteringCpp', PACKAGE = 'Seurat', SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename)
 }
@@ -95,5 +103,17 @@ WriteEdgeFile <- function(snn, filename, display_progress) {
 
 DirectSNNToFile <- function(nn_ranked, prune, display_progress, filename) {
     .Call('_Seurat_DirectSNNToFile', PACKAGE = 'Seurat', nn_ranked, prune, display_progress, filename)
+}
+
+TCCMapC <- function(from, from_type, to, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg) {
+    .Call('_Seurat_TCCMapC', PACKAGE = 'Seurat', from, from_type, to, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg)
+}
+
+ECUniqueGene <- function(ecs, from_type, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg) {
+    .Call('_Seurat_ECUniqueGene', PACKAGE = 'Seurat', ecs, from_type, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg)
+}
+
+GeneToECMapC <- function(gene, ambig, ensg, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg) {
+    .Call('_Seurat_GeneToECMapC', PACKAGE = 'Seurat', gene, ambig, ensg, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg)
 }
 

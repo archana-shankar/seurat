@@ -6,6 +6,171 @@ NULL
 # Functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+#' Add in raw TCC data to Seurat object
+#'
+#' @param object Seurat object
+#' @param tcc.counts Path to TCC matrix -- should be provided as a tsv file in
+#' triplet sparse matrix format (i, j, x) (matrix.tsv from Kallisto)
+#' @param cell.names File with cell names (matrix.cells from Kallisto)
+#' @param ec.map File mapping ECs to transcript ids (matrix.ec from Kallisto)
+#' @param gene.map File mapping ENST to ENSG names
+#' @param tcc.assay.name Name for tcc Assay object
+#' @param intersect.cells Return Seurat object with only cells with that also have TCC
+#' quantifications.
+#' @param verbose prints output/progress bars
+#'
+#' @importFrom utils txtProgressBar setTxtProgressBar
+#' @importFrom Matrix rowSums sparseMatrix
+#' @importFrom data.table fread
+#' @export
+#'
+AddTCC <- function(
+  object,
+  tcc.counts,
+  cell.names,
+  ec.map,
+  gene.map,
+  dataset = "hsapiens_gene_ensembl",
+  tcc.assay.name = "tcc",
+  intersect.cells = FALSE,
+  verbose = TRUE
+) {
+  # Check for biomaRt
+  if (!'biomaRt' %in% rownames(x = installed.packages())) {
+    stop("Please install biomaRt - learn more at https://bioconductor.org/packages/release/bioc/html/biomaRt.html")
+  }
+  if (verbose) {
+    message("Reading files")
+  }
+  tcc.mat <- fread(file = tcc.counts, showProgress = verbose)
+  tcc.mat <- sparseMatrix(i = tcc.mat$V1 + 1, j = tcc.mat$V2 + 1, x = tcc.mat$V3)
+  rownames(x = tcc.mat) = 0:(nrow(x = tcc.mat) - 1)
+  cell.names <- read.table(file = cell.names, stringsAsFactors = FALSE)[, 1]
+  cell.names <- unname(obj = sapply(X = cell.names, FUN = function(x) {
+    ExtractField(string = x, field = 4, delim = "_")
+  }))
+  colnames(x = tcc.mat) <- cell.names
+  
+  if (!intersect.cells) {
+    bad.cells <- cell.names[which(!cell.names %in% colnames(x = object))]
+    if (length(x = bad.cells) > 0) {
+      stop(paste0(length(x = bad.cells), " cells are present in the TCC matrix that are not in the provided object. Consider setting intersect.cells = TRUE"))
+    }
+    bad.cells <- colnames(x = object)[which(!colnames(x = object) %in% cell.names)]
+    if(length(x = bad.cells) > 0) {
+      stop(paste0(length(x = bad.cells), " cells are present in the object that are not present in the provided TCC matrix. Consider setting intersect.cells = TRUE"))
+    }
+  }
+  
+  cells.to.keep <- intersect(x = colnames(x = object), y = colnames(x = tcc.mat))
+  object <- SubsetData(object = object, cells = cells.to.keep)
+  cells.to.keep <- intersect(x = colnames(x = object), y = colnames(x = tcc.mat))
+  tcc.assay <- CreateAssayObject(counts = tcc.mat[, cells.to.keep])
+  object[[tcc.assay.name]] <- tcc.assay
+  
+  ec.map <- as.matrix(
+    x = read.table(
+      file = ec.map,
+      stringsAsFactors = FALSE,
+      sep = "\t",
+      row.names = 1)
+  )
+  gene.map <- as.matrix(
+    read.table(
+      file = gene.map,
+      stringsAsFactors = FALSE,
+      sep = "\t",
+      row.names = 1)
+  )
+  tx.to.enst.ht <- HashTable()
+  enst.to.tx.ht <- HashTable()
+  
+  if (verbose) {
+    message("Building EC/transcript maps")
+    pb <- txtProgressBar(min = 0, max = nrow(x = ec.map), style = 3)
+  }
+  
+  # necessary so that large numbers don't get stored in exponential notation
+  scipen.save <- getOption(x = "scipen")
+  options(scipen = 999)
+  
+  for(i in 1:nrow(x = gene.map)) {
+    HashTableInsert(key = as.character(i - 1), value = rownames(gene.map)[i], ht = tx.to.enst.ht)
+  }
+  
+  ec.to.enst.ht <- HashTable()
+  enst.to.ec.ht <- HashTable()
+  
+  for(i in 1:nrow(x = ec.map)){
+    new.tids <- unlist(strsplit(x = ec.map[i, ], split = ","))
+    new.tx <- HashTableLookup(ht = tx.to.enst.ht, key = new.tids)
+    HashTableInsert(key = rownames(ec.map)[i], value = new.tx, ht = ec.to.enst.ht)
+    for(j in new.tx){
+      HashTableAdd(key = j, value = rownames(ec.map)[i], ht = enst.to.ec.ht)
+    }
+    if(i %% 10000 == 0){
+      if (verbose) {
+        setTxtProgressBar(pb, i)
+      }
+    }
+  }
+  
+  mart <- biomaRt::useMart(biomart = "ensembl", dataset = dataset)
+  ensg.map <- getBM(
+    attributes = c('ensembl_gene_id', 'external_gene_name'),
+    mart = mart
+  )
+  rownames(x = ensg.map) <- ensg.map$ensembl_gene_id
+
+  if (verbose) {
+    setTxtProgressBar(pb, nrow(ec.map))
+    close(pb)
+    message("Building gene/transcript maps")
+    pb <- txtProgressBar(min = 0, max = nrow(x = gene.map) + nrow(x = ensg.map), style = 3)
+  }
+  
+  enst.to.ensg.ht <- HashTable()
+  ensg.to.enst.ht <- HashTable()
+  
+  for(i in 1:nrow(x = gene.map)) {
+    enst <- rownames(x = gene.map)[i]
+    HashTableAdd(key = enst, value = gene.map[i], ht = enst.to.ensg.ht)
+    HashTableAdd(key = gene.map[i], value = enst, ht = ensg.to.enst.ht)
+    if (verbose) {
+      setTxtProgressBar(pb, i)
+    }
+  }
+  
+  ensg.to.gene.ht <- HashTable()
+  gene.to.ensg.ht <- HashTable()
+  
+  for(i in 1:nrow(x = ensg.map)) {
+    HashTableInsert(key = ensg.map[i, 1], value = ensg.map[i, 2], ht = ensg.to.gene.ht)
+    HashTableAdd(key = ensg.map[i, 2], value = ensg.map[i, 1], ht = gene.to.ensg.ht)
+    if (verbose) {
+      setTxtProgressBar(pb, i + nrow(x = gene.map))
+    }
+  }
+  
+  if(verbose) {
+    close(pb)
+  }
+  
+  slot(object = object, name = "tools")[["tcc.maps"]] <- list(
+    ec.to.enst.map = ec.to.enst.ht,
+    enst.to.ec.map = enst.to.ec.ht,
+    enst.to.ensg.map = enst.to.ensg.ht,
+    ensg.to.enst.map = ensg.to.enst.ht,
+    ensg.to.gene.map = ensg.to.gene.ht,
+    gene.to.ensg.map = gene.to.ensg.ht
+  )
+  
+  options(scipen = scipen.save)
+  return(object)
+}
+
+
+
 #' Filter out cells from a Seurat object
 #'
 #' Creates a Seurat object containing only a subset of the cells in the

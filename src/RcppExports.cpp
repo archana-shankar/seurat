@@ -262,6 +262,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// HashTableLookup
+StringVector HashTableLookup(Environment ht, StringVector key);
+RcppExport SEXP _Seurat_HashTableLookup(SEXP htSEXP, SEXP keySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Environment >::type ht(htSEXP);
+    Rcpp::traits::input_parameter< StringVector >::type key(keySEXP);
+    rcpp_result_gen = Rcpp::wrap(HashTableLookup(ht, key));
+    return rcpp_result_gen;
+END_RCPP
+}
+// KeyInHashTable
+bool KeyInHashTable(Environment ht, std::string key);
+RcppExport SEXP _Seurat_KeyInHashTable(SEXP htSEXP, SEXP keySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Environment >::type ht(htSEXP);
+    Rcpp::traits::input_parameter< std::string >::type key(keySEXP);
+    rcpp_result_gen = Rcpp::wrap(KeyInHashTable(ht, key));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RunModularityClusteringCpp
 IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN, int modularityFunction, double resolution, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename);
 RcppExport SEXP _Seurat_RunModularityClusteringCpp(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP) {
@@ -319,6 +343,62 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// TCCMapC
+StringVector TCCMapC(StringVector from, std::string from_type, std::string to, Environment ec_to_enst, Environment enst_to_ec, Environment enst_to_ensg, Environment ensg_to_enst, Environment ensg_to_gene, Environment gene_to_ensg);
+RcppExport SEXP _Seurat_TCCMapC(SEXP fromSEXP, SEXP from_typeSEXP, SEXP toSEXP, SEXP ec_to_enstSEXP, SEXP enst_to_ecSEXP, SEXP enst_to_ensgSEXP, SEXP ensg_to_enstSEXP, SEXP ensg_to_geneSEXP, SEXP gene_to_ensgSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< StringVector >::type from(fromSEXP);
+    Rcpp::traits::input_parameter< std::string >::type from_type(from_typeSEXP);
+    Rcpp::traits::input_parameter< std::string >::type to(toSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ec_to_enst(ec_to_enstSEXP);
+    Rcpp::traits::input_parameter< Environment >::type enst_to_ec(enst_to_ecSEXP);
+    Rcpp::traits::input_parameter< Environment >::type enst_to_ensg(enst_to_ensgSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ensg_to_enst(ensg_to_enstSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ensg_to_gene(ensg_to_geneSEXP);
+    Rcpp::traits::input_parameter< Environment >::type gene_to_ensg(gene_to_ensgSEXP);
+    rcpp_result_gen = Rcpp::wrap(TCCMapC(from, from_type, to, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ECUniqueGene
+CharacterVector ECUniqueGene(CharacterVector ecs, std::string from_type, Environment ec_to_enst, Environment enst_to_ec, Environment enst_to_ensg, Environment ensg_to_enst, Environment ensg_to_gene, Environment gene_to_ensg);
+RcppExport SEXP _Seurat_ECUniqueGene(SEXP ecsSEXP, SEXP from_typeSEXP, SEXP ec_to_enstSEXP, SEXP enst_to_ecSEXP, SEXP enst_to_ensgSEXP, SEXP ensg_to_enstSEXP, SEXP ensg_to_geneSEXP, SEXP gene_to_ensgSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterVector >::type ecs(ecsSEXP);
+    Rcpp::traits::input_parameter< std::string >::type from_type(from_typeSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ec_to_enst(ec_to_enstSEXP);
+    Rcpp::traits::input_parameter< Environment >::type enst_to_ec(enst_to_ecSEXP);
+    Rcpp::traits::input_parameter< Environment >::type enst_to_ensg(enst_to_ensgSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ensg_to_enst(ensg_to_enstSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ensg_to_gene(ensg_to_geneSEXP);
+    Rcpp::traits::input_parameter< Environment >::type gene_to_ensg(gene_to_ensgSEXP);
+    rcpp_result_gen = Rcpp::wrap(ECUniqueGene(ecs, from_type, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg));
+    return rcpp_result_gen;
+END_RCPP
+}
+// GeneToECMapC
+CharacterVector GeneToECMapC(CharacterVector gene, bool ambig, bool ensg, Environment ec_to_enst, Environment enst_to_ec, Environment enst_to_ensg, Environment ensg_to_enst, Environment ensg_to_gene, Environment gene_to_ensg);
+RcppExport SEXP _Seurat_GeneToECMapC(SEXP geneSEXP, SEXP ambigSEXP, SEXP ensgSEXP, SEXP ec_to_enstSEXP, SEXP enst_to_ecSEXP, SEXP enst_to_ensgSEXP, SEXP ensg_to_enstSEXP, SEXP ensg_to_geneSEXP, SEXP gene_to_ensgSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterVector >::type gene(geneSEXP);
+    Rcpp::traits::input_parameter< bool >::type ambig(ambigSEXP);
+    Rcpp::traits::input_parameter< bool >::type ensg(ensgSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ec_to_enst(ec_to_enstSEXP);
+    Rcpp::traits::input_parameter< Environment >::type enst_to_ec(enst_to_ecSEXP);
+    Rcpp::traits::input_parameter< Environment >::type enst_to_ensg(enst_to_ensgSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ensg_to_enst(ensg_to_enstSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ensg_to_gene(ensg_to_geneSEXP);
+    Rcpp::traits::input_parameter< Environment >::type gene_to_ensg(gene_to_ensgSEXP);
+    rcpp_result_gen = Rcpp::wrap(GeneToECMapC(gene, ambig, ensg, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RunUMISampling", (DL_FUNC) &_Seurat_RunUMISampling, 4},
@@ -341,10 +421,15 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_FastLogVMR", (DL_FUNC) &_Seurat_FastLogVMR, 2},
     {"_Seurat_RowSumOfSquares", (DL_FUNC) &_Seurat_RowSumOfSquares, 1},
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
+    {"_Seurat_HashTableLookup", (DL_FUNC) &_Seurat_HashTableLookup, 2},
+    {"_Seurat_KeyInHashTable", (DL_FUNC) &_Seurat_KeyInHashTable, 2},
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
+    {"_Seurat_TCCMapC", (DL_FUNC) &_Seurat_TCCMapC, 9},
+    {"_Seurat_ECUniqueGene", (DL_FUNC) &_Seurat_ECUniqueGene, 8},
+    {"_Seurat_GeneToECMapC", (DL_FUNC) &_Seurat_GeneToECMapC, 9},
     {NULL, NULL, 0}
 };
 
