@@ -53,6 +53,7 @@ int UnionLength(std::vector<int> a, std::vector<int> b, int intersect_length);
 std::vector<int> ToVector(Eigen::VectorXd v1);
 StringVector HashTableLookup(Environment ht, StringVector key);
 bool KeyInHashTable(Environment ht, std::string key);
+std::vector<bool> RowSumsThreshold(Eigen::SparseMatrix<double> mat, double threshold);
 //----------------------------------------------------
 
 #endif//DATA_MANIPULATION

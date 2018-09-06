@@ -520,3 +520,19 @@ bool KeyInHashTable(Environment ht, std::string key) {
   return(ht.exists(key));
 }
 
+
+// Function to check whether the row sums of a matrix are larger than a given
+// threshold. Returns a boolean vector with the results of that check.
+//[[Rcpp::export]]
+std::vector<bool> RowSumsThreshold(Eigen::SparseMatrix<double> mat, double threshold) {
+  mat = mat.transpose();
+  std::vector<bool> results;
+  for (int k=0; k < mat.outerSize(); ++k){
+    double rowSum = 0;
+    for (Eigen::SparseMatrix<double>::InnerIterator it(mat, k); it; ++it){
+      rowSum += it.value();
+    }
+    results.push_back(rowSum > threshold);
+  }
+  return(results);
+}

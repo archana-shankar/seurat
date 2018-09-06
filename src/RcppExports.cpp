@@ -286,6 +286,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// RowSumsThreshold
+std::vector<bool> RowSumsThreshold(Eigen::SparseMatrix<double> mat, double threshold);
+RcppExport SEXP _Seurat_RowSumsThreshold(SEXP matSEXP, SEXP thresholdSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::SparseMatrix<double> >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
+    rcpp_result_gen = Rcpp::wrap(RowSumsThreshold(mat, threshold));
+    return rcpp_result_gen;
+END_RCPP
+}
 // RunModularityClusteringCpp
 IntegerVector RunModularityClusteringCpp(Eigen::SparseMatrix<double> SNN, int modularityFunction, double resolution, int algorithm, int nRandomStarts, int nIterations, int randomSeed, bool printOutput, std::string edgefilename);
 RcppExport SEXP _Seurat_RunModularityClusteringCpp(SEXP SNNSEXP, SEXP modularityFunctionSEXP, SEXP resolutionSEXP, SEXP algorithmSEXP, SEXP nRandomStartsSEXP, SEXP nIterationsSEXP, SEXP randomSeedSEXP, SEXP printOutputSEXP, SEXP edgefilenameSEXP) {
@@ -423,6 +435,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_RowVar", (DL_FUNC) &_Seurat_RowVar, 1},
     {"_Seurat_HashTableLookup", (DL_FUNC) &_Seurat_HashTableLookup, 2},
     {"_Seurat_KeyInHashTable", (DL_FUNC) &_Seurat_KeyInHashTable, 2},
+    {"_Seurat_RowSumsThreshold", (DL_FUNC) &_Seurat_RowSumsThreshold, 2},
     {"_Seurat_RunModularityClusteringCpp", (DL_FUNC) &_Seurat_RunModularityClusteringCpp, 9},
     {"_Seurat_ComputeSNN", (DL_FUNC) &_Seurat_ComputeSNN, 2},
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},

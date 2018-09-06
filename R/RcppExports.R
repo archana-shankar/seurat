@@ -89,6 +89,10 @@ KeyInHashTable <- function(ht, key) {
     .Call('_Seurat_KeyInHashTable', PACKAGE = 'Seurat', ht, key)
 }
 
+RowSumsThreshold <- function(mat, threshold) {
+    .Call('_Seurat_RowSumsThreshold', PACKAGE = 'Seurat', mat, threshold)
+}
+
 RunModularityClusteringCpp <- function(SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename) {
     .Call('_Seurat_RunModularityClusteringCpp', PACKAGE = 'Seurat', SNN, modularityFunction, resolution, algorithm, nRandomStarts, nIterations, randomSeed, printOutput, edgefilename)
 }

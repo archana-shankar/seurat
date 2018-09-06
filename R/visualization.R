@@ -1307,6 +1307,236 @@ JackStrawPlot <- function(
   return(gp)
 }
 
+#' Barplot to visualize EC and feature-level differences
+#'
+#' Given a feature, this function plots the mean counts for each EC that maps to
+#' the feature and passes the filters, split by group. Also plots the aggregated
+#' feature level mean counts for each group.
+#'
+#' @param object Seurat object
+#' @param assay Assay with the TCC info
+#' @param feature Feature to produce barplots for
+#' @param group.by Name of metadata column to group by.
+#' @param group1 Name of the first group to display
+#' @param group2 Name of the second group to display
+#' @param ec.threshold Minimum counts per cell
+#' @param ambig Include ECs mapping to more than one gene?
+#'
+#' @return Returns ggplot object
+#' @export
+#'
+TCCBarPlot <- function(
+  object, 
+  assay = "tcc",
+  feature, 
+  group.by = NULL, 
+  group1, 
+  group2,
+  ec.threshold, 
+  ambig = FALSE
+) {
+  ecs <- GeneToECMap(object = object, gene = feature)
+  n.cells <- ncol(x = object)
+  ec.threshold <- ec.threshold * n.cells
+  ecs.to.plot <- ECFilter(
+    object = object, 
+    assay = assay,
+    ecs = ecs,
+    ec.threshold = ec.threshold,
+    return.type = "EC", 
+    ambig = ambig
+  )
+  if (length(x = ecs.to.plot) == 0) {
+    stop("No ECs pass filters")
+  }
+  if (!is.null(x = group.by)){
+    Idents(object = object) <- group.by
+  }
+  cells.1 <- WhichCells(object = object, ident.keep = group1)
+  cells.2 <- WhichCells(object = object, ident.keep = group2)
+  mean.counts.1 <- rowSums(
+    x = GetAssayData(
+      object = object, 
+      assay = assay, 
+      slot = "counts"
+    )[as.numeric(x = ecs.to.plot) + 1, cells.1]
+    ) / length(x = cells.1)
+  mean.counts.2 <- rowSums(
+    x = GetAssayData(
+      object = object, 
+      assay = assay, 
+      slot = "counts"
+    )[as.numeric(x = ecs.to.plot) + 1, cells.2]
+    ) / length(x = cells.2)
+  data.plot <- data.frame(
+    ecs = rep(x = ecs.to.plot, 2),
+    group = c(rep(x = group1, length(x = ecs.to.plot)), rep(x = group2, length(x = ecs.to.plot))),
+    mean.counts = c(mean.counts.1, mean.counts.2)
+  )
+  p1 <- ggplot(data = data.plot, aes(x = ecs, y = mean.counts, fill = group)) +
+    geom_bar(position = position_dodge(), stat = "identity") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+    ylab("Mean Counts") + 
+    xlab("Equivalence Class")
+  
+  gene.mean.1 <- sum(GetAssayData(
+    object = object, 
+    assay = assay, 
+    slot = "counts"
+  )[as.numeric(x = ecs.to.plot) + 1, cells.1]
+  ) / length(x = cells.1)
+  gene.mean.2 <- sum(GetAssayData(
+    object = object, 
+    assay = assay, 
+    slot = "counts"
+  )[as.numeric(x = ecs.to.plot) + 1, cells.2]
+  ) / length(x = cells.2)
+  
+  data.plot2 <- data.frame(group = c(group1, group2),
+                           mean.count = c(gene.mean.1, gene.mean.2),
+                           feature = rep(x = feature, 2))
+  p2 <- ggplot(data.plot2, aes(x = feature, y = mean.count, fill = group)) +
+    geom_bar(position = position_dodge(), stat = "identity") +
+    ylab("Mean Counts") + xlab("Feature")
+  
+  p.final <- plot_grid(p1 + theme(legend.position="none"),
+                       p2 + theme(legend.position="none"),
+                       align = "hv", rel_widths = c(0.75, 0.25))
+  p.legend <- get_legend(plot = p1)
+  p.final <- plot_grid(p.final, p.legend, rel_widths = c(3, .3))
+  return(p.final)
+}
+
+
+#' Feature level stemplot for TCCs
+#'
+#' A useful plot for visualizing information about the equivalence classes (ECs)
+#' that map to certain features. Plots the distribution of UMI counts for each EC
+#' with options for investigating how filtering would affect would change the ECs
+#' that are kept.
+#'
+#' @param object Seurat object
+#' @param feature Feature(s) to produce stem plots for
+#' @param log.scale Plot UMIs on a log scale (natural log - log1p)
+#' @param ec.threshold Minimum counts per cell
+#' @param ec.fail.color Color for ECs that fail the threshold cutoff
+#' @param ec.pass.color Color for ECs that pass threshold cutoff
+#' @param multimap.color Color for ECs that map to more than 1 gene
+#' @param print.info Print some stats for each feature plotted
+#'
+#' @return Returns ggplot object
+#' @export
+#'
+TCCStemPlot <- function(
+  object, 
+  feature, 
+  assay = "tcc",
+  log.scale = TRUE, 
+  ec.threshold = NULL,
+  ec.fail.color = "grey", 
+  ec.pass.color = "blue",
+  multimap.color = "red", 
+  print.info = TRUE
+) {
+  data.plot <- data.frame(
+    ecs = factor(), 
+    umis = numeric(), 
+    feature = character()
+  )
+  for(ff in feature) {
+    ecs <- as.numeric(x = TCCMap(
+      object = object, 
+      from = ff, 
+      from.type = "GENE", 
+      to = "EC"
+    ))
+    data.plot <- rbind(
+      data.plot, 
+      data.frame(
+        ecs = ecs,
+        umis = rowSums(x = GetAssayData(
+          object = object, 
+          assay = assay, 
+          slot = "counts")[ecs + 1, ]),
+        feature = rep(x = ff, length(x = ecs))
+      )
+    )
+  }
+  data.plot <- data.plot[order(data.plot$umis), ]
+  data.plot$ecs <- factor(x = data.plot$ecs, levels = rev(data.plot$ecs))
+  if (!is.null(x = ec.threshold)) {
+    n.cells <- ncol(x = object)
+    ec.threshold <- ec.threshold * n.cells
+    filter.results <- ECFilter(
+      object = object,
+      assay = assay,
+      ecs = ecs,
+      ec.threshold = ec.threshold,
+      return.type = "MAT"
+    )
+    data.plot <- merge(x = data.plot, y = filter.results, by = "ecs")
+    data.plot$test <- rep(x = "Failed EC Threshold", nrow(x = data.plot))
+    data.plot$test[which(x = data.plot$threshold.pass)] <- "Passed EC Threshold"
+    data.plot$test[which(x = sapply(
+      X = 1:nrow(data.plot), 
+      FUN = function(x) data.plot$threshold.pass[x] && data.plot$multimapped[x])
+      )] <- "Multi-mapped"
+    data.plot$test <- factor(
+      x = data.plot$test, 
+      levels = c("Failed EC Threshold", "Passed EC Threshold", "Multi-mapped")
+    )
+  }
+  
+  if (log.scale) {
+    data.plot$umis <- log1p(x = data.plot$umis)
+    if (!is.null(x = ec.threshold)){
+      ec.threshold <- log(x = ec.threshold)
+    }
+  }
+  p <- ggplot(data = data.plot, aes(x = factor(ecs), y = umis))
+  if (!is.null(x = ec.threshold)){
+    p <- p + geom_point(aes(color = test)) +
+      geom_segment(aes(x = ecs, y = umis, xend = ecs, yend = 0, color = test)) + 
+      facet_grid( . ~feature, drop = TRUE, scales = "free") +
+      xlab("Equivalence Class") + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.title=element_blank()) +
+      scale_colour_manual(values = c(ec.fail.color, ec.pass.color, multimap.color)) +
+      geom_hline(yintercept = ec.threshold, linetype = "dashed", color = "red")
+  } else {
+    p <- p + geom_point() +
+      geom_segment(aes(ecs, umis, xend = ecs, yend = 0)) + 
+      facet_grid( . ~feature, drop = TRUE, scales = "free") +
+      xlab("Equivalence Class") + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.title = element_blank())
+  }
+  if(log.scale) {
+    p <- p + ylab("Log UMI Counts")
+  } else {
+    p <- p + ylab("UMI Counts")
+  }
+  if (print.info){
+    for (ff in feature){
+      g.info <- data.plot[which(x = data.plot$feature == ff), ]
+      if (log.scale){
+        g.info$umis <- expm1(x = g.info$umis)
+      }
+      failed.sum <- sum(g.info$umis[which(x = g.info$test == "Failed EC Threshold")])
+      frac.above <- 1 - failed.sum/sum(g.info$umis)
+      frac.above.unique <- sum(g.info$umis[which(g.info$test == "Passed EC Threshold")]) / sum(g.info$umis[which(!g.info$multimapped)])
+      avg.counts <- sum(g.info$umis[which(g.info$test == "Passed EC Threshold")]) / ncol(x = object[[assay]])
+      message("===============================================================")
+      message(paste0("Feature: ", ff))
+      message(paste0("Valid Unique ECs: ", paste(g.info$ec[which(g.info$test == "Passed EC Threshold")],
+                                                 collapse = ", ")))
+      message("---------------------------------------------------------------")
+      message(paste0("Fraction of Counts in ECs above threshold:   ", round(frac.above, 3) * 100, "%"))
+      message(paste0("Fraction of Counts in Valid Unique ECs:      ", round(frac.above.unique, 3) * 100, "%"))
+      message(paste0("Average Feature Counts in Valid Unique ECs:     ", round(avg.counts, 3)))
+    }
+  }
+  return(p)
+}
+
 #' Visualize Dimensional Reduction genes
 #'
 #' Visualize top genes associated with reduction components

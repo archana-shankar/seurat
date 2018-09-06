@@ -628,6 +628,54 @@ MinMax <- function(data, min, max) {
   }
 }
 
+# Filter out ECs that don't pass a threshold and/or are ambigously mapped
+#
+# @param object         Seurat object
+# @param assay          Name of the TCC assay
+# @param ecs            vector of ECs to check
+# @param ec.threshold   Threshold for EC
+# @param return.type    Return either a list of ECs that pass ("EC") or a 
+#                       dataframe with each EC and whether they are multimapped
+#                       and pass the threshold
+# @param ambig          Return ECs that are ambigously mapping
+#
+# @return               Returns either a vector of ECs or a dataframe 
+#
+ECFilter <- function(object, assay, ecs, ec.threshold, return.type = "MAT", ambig = FALSE) {
+  unique.ecs <- ECUniqueGene(
+    ecs = ecs,
+    from_type = "EC",
+    ec_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ec.to.enst.map,
+    enst_to_ec = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ec.map,
+    enst_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ensg.map,
+    ensg_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.enst.map,
+    ensg_to_gene = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.gene.map,
+    gene_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$gene.to.ensg.map
+  )
+  multimapped <- ! ecs %in% unique.ecs
+  threshold.pass <- RowSumsThreshold(
+    mat = GetAssayData(object = object, assay = assay, slot = "counts")[as.numeric(x = ecs) + 1, ], 
+    threshold = ec.threshold
+  )
+  if (return.type == "EC") {
+    if (ambig) {
+      return(ecs[which(x = threshold.pass)])
+    } else {
+      return(ecs[which(x = sapply(
+        X = 1:length(x = ecs), 
+        FUN = function(x) threshold.pass[x] && !multimapped[x]
+        ))]
+      )
+    }
+  } else if (return.type == "MAT") {
+    return (data.frame(
+      ecs = ecs, 
+      multimapped = multimapped, 
+      threshold.pass = threshold.pass
+    ))
+  }
+}
+
 # Extract delimiter information from a string.
 #
 # Parses a string (usually a cell name) and extracts fields based on a delimiter
