@@ -435,7 +435,7 @@ HVFInfo <- function(object, ...) {
 #' @param object An object
 #' @param ... Arguments passed to other methods
 #'
-#' @return The cell identies
+#' @return \code{Idents}: The cell identies
 #'
 #' @rdname Idents
 #' @export Idents
@@ -445,9 +445,9 @@ Idents <- function(object, ... ) {
 }
 
 #' @inheritParams Idents
-#' @param value The name of the identites to pull or the identities themselves
+#' @param value,idents The name of the identites to pull from object metadata or the identities themselves
 #'
-#' @return An object with the cell identites changed
+#' @return \code{Idents<-}: An object with the cell identites changed
 #'
 #' @rdname Idents
 #' @export Idents<-
@@ -590,6 +590,41 @@ NormalizeData <- function(
   UseMethod(generic = 'NormalizeData', object = object)
 }
 
+#' Identify cells matching certain criteria
+#'
+#' Returns a list of cells that match a particular set of criteria such as
+#' identity class, high/low values for particular PCs, ect..
+#'
+#' @param object Seurat object
+#' @param cells Subset of cell names
+#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
+#' column name in object@@meta.data, etc. Any argument that can be retreived
+#' using FetchData
+#' @param low.threshold Low cutoff for the parameter (default is -Inf)
+#' @param high.threshold High cutoff for the parameter (default is Inf)
+#' @param accept.value Returns all cells with the subset name equal to this value
+#' @param ... Arguments passed to other methods
+# @param \dots Additional arguments to be passed to FetchData
+#'
+#' @return A vector of cell names
+#'
+#' @rdname WhichCells
+#' @export OldWhichCells
+#'
+#' @examples
+#' OldWhichCells(object = pbmc_small, ident.keep = 2)
+#'
+OldWhichCells <- function(
+  object,
+  cells,
+  subset.name,
+  low.threshold,
+  high.threshold,
+  accept.value,
+  ...
+) {
+  UseMethod(generic = 'OldWhichCells', object = object)
+}
 #' Print the results of a dimensional reduction analysis
 #'
 #' Prints a set of genes that most strongly define a set of components
@@ -640,12 +675,17 @@ RenameCells <- function(object, new.names, ...) {
 #' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
 #'
 #' @param object a Seurat object
-#' @param k  The rank of the rank-k approximation. Set to 0 for automated choice of k.
+#' @param k  The rank of the rank-k approximation. Set to NULL for automated choice of k.
 #' @param q  The number of additional power iterations in randomized SVD when
 #' computing rank k approximation. By default, q=10.
 #' @rdname RunALRA
 #' @export RunALRA
 # @import rsvd
+#'
+#' @author Jun Zhao, George Linderman
+#' @references Linderman, G. C., Zhao, J., Kluger, Y. (2018). "Zero-preserving imputation
+#' of scRNA-seq data using low rank approximation." (bioRxiv:138677)
+#' @seealso \code{\link{ALRAChooseKPlot}}
 #'
 #' @examples
 #' pbmc_small
@@ -696,12 +736,7 @@ RunALRA <- function(object, k, q, ...) {
 #' @rdname RunCCA
 #' @export RunCCA
 #'
-RunCCA <- function(
-  object1,
-  object2,
-  num.cc,
-  ...
-) {
+RunCCA <- function(object1, object2, num.cc, ...) {
   UseMethod(generic = 'RunCCA', object = object1)
 }
 
@@ -747,7 +782,7 @@ RunMultiCCA <- function(
   standardize,
   verbose
 ) {
-  if(length(x = object.list) < 3){
+  if (length(x = object.list) < 3) {
     stop("Must give at least 3 objects for MultiCCA")
   }
   UseMethod(generic = 'RunMultiCCA', object = object.list[[1]])
@@ -1027,12 +1062,25 @@ SetAssayData <- function(object, slot, new.data, ...) {
   UseMethod(generic = 'SetAssayData', object = object)
 }
 
+#' Set cell identity information
+#'
+#' @inheritParams Idents
+#'
+#' @return \code{SetIdent}: An object with new identity classes set
+#'
+#' @rdname Idents
+#' @export SetIdent
+#'
+SetIdent <- function(object, idents, ...) {
+  UseMethod(generic = 'SetIdent', object = object)
+}
+
 #' Stash an object's identity information
 #'
 #' @inheritParams Idents
 #' @param save.name Store current identity information under this name
 #'
-#' @return An object with the identities stashed
+#' @return \code{StashIdent}: An object with the identities stashed
 #'
 #' @rdname Idents
 #' @export StashIdent
@@ -1128,30 +1176,27 @@ VariableFeatures <- function(object, ...) {
 #'
 #' @param object Seurat object
 #' @param cells Subset of cell names
-#' @param subset.name Parameter to subset on. Eg, the name of a gene, PC1, a
-#' column name in object@@meta.data, etc. Any argument that can be retreived
-#' using FetchData
-#' @param low.threshold Low cutoff for the parameter (default is -Inf)
-#' @param high.threshold High cutoff for the parameter (default is Inf)
-#' @param accept.value Returns all cells with the subset name equal to this value
+#' @param expression A predicate expression for feature/variable expression, can
+#' evalue anything that can be pulled by \code{FetchData}
+#' @param invert Invert the selection of cells
 #' @param ... Arguments passed to other methods
-# @param \dots Additional arguments to be passed to FetchData
 #'
 #' @return A vector of cell names
 #'
+#' @seealso \code{\link{FetchData}}
 #' @rdname WhichCells
 #' @export WhichCells
 #'
 #' @examples
-#' WhichCells(object = pbmc_small, ident.keep = 2)
+#' WhichCells(object = pbmc_small, idents = 2)
+#' WhichCells(object = pbmc_small, expression = MS4A1 > 3)
+#' WhichCells(object = pbmc_small, idents = c(1, 3), invert = TRUE)
 #'
 WhichCells <- function(
   object,
   cells,
-  subset.name,
-  low.threshold,
-  high.threshold,
-  accept.value,
+  expression,
+  invert,
   ...
 ) {
   UseMethod(generic = 'WhichCells', object = object)

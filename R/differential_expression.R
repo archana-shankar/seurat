@@ -183,7 +183,7 @@ FindConservedMarkers <- function(
     if(!ident.use.1 %in% object@ident) {
       stop(paste0("Identity: ", ident.1, " not present in group ", level.use))
     }
-    cells.1 <- WhichCells(object = object, ident = ident.use.1)
+    cells.1 <- WhichCells(object = object, idents = ident.use.1)
     if (is.null(x = ident.2)) {
       cells.2 <- setdiff(x = cells[[i]], y = cells.1)
       ident.use.2 <- names(x = which(x = table(object@ident[cells.2]) > 0))
@@ -244,6 +244,8 @@ FindConservedMarkers <- function(
 
 #' @param cells.1 Vector of cell names belonging to group 1
 #' @param cells.2 Vector of cell names belonging to group 2
+#'
+#' @importFrom Matrix rowSums
 #'
 #' @describeIn FindMarkers Run differential expression test on matrix
 #' @export
@@ -456,7 +458,6 @@ FindMarkers.default <- function(
   return(de.results)
 }
 
-
 #' @param ident.1 Identity class to define markers for
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
@@ -508,7 +509,7 @@ FindMarkers.Seurat <- function(
       stop(paste0("The following cell names provided to ident.1 are not present in the object: ", paste(bad.cells, collapse = ", ")))
     }
   } else {
-    ident.1 <- WhichCells(object = object, ident.keep = ident.1)
+    ident.1 <- WhichCells(object = object, idents = ident.1)
   }
   # if NULL for ident.2, use all other cells
   if (length(x = as.vector(x = ident.2)) > 1 &&
@@ -521,7 +522,7 @@ FindMarkers.Seurat <- function(
     if (is.null(x = ident.2)) {
       ident.2 <- setdiff(colnames(data.use), ident.1)
     } else {
-      ident.2 <- WhichCells(object = object, ident.keep = ident.2)
+      ident.2 <- WhichCells(object = object, idents = ident.2)
     }
   }
   if (!is.null(latent.vars)) {
@@ -656,8 +657,8 @@ bimodLikData <- function(x, xmin = 0) {
 # @examples
 # \dontrun{
 #   pbmc_small
-#   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#   DESeq2DETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#               cells.2 = WhichCells(object = pbmc_small, idents = 2))
 # }
 #
 DESeq2DETest <- function(
@@ -735,8 +736,8 @@ DifferentialLRT <- function(x, y, xmin = 0) {
 # @export
 # @examples
 # pbmc_small
-# DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# DiffExpTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 #
 DiffExpTest <- function(
   data.use,
@@ -775,8 +776,8 @@ DiffExpTest <- function(
 #
 # @examples
 # pbmc_small
-# DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# DiffTTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 DiffTTest <- function(
   data.use,
   cells.1,
@@ -821,8 +822,8 @@ DiffTTest <- function(
 #@examples
 # pbmc_small
 # # Note, not recommended for particularly small datasets - expect warnings
-# NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# NegBinomDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 #
 GLMDETest <- function(
   data.use,
@@ -996,8 +997,8 @@ LRLRTest <- function(data.groups, data.test){
 #
 # @examples
 # pbmc_small
-# MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# MarkerTest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 #
 MarkerTest <- function(
   data.use,
@@ -1048,8 +1049,8 @@ MarkerTest <- function(
 # @examples
 # \dontrun{
 #   pbmc_small
-#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#               cells.2 = WhichCells(object = pbmc_small, ident = 2))
+#   MASTDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#               cells.2 = WhichCells(object = pbmc_small, idents = 2))
 # }
 #
 MASTDETest <- function(
@@ -1249,8 +1250,8 @@ RegularizedTheta <- function(cm, latent.data, min.theta = 0.01, bin.size = 128) 
 #
 # @examples
 # pbmc_small
-# WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, ident = 1),
-#             cells.2 = WhichCells(object = pbmc_small, ident = 2))
+# WilcoxDETest(pbmc_small, cells.1 = WhichCells(object = pbmc_small, idents = 1),
+#             cells.2 = WhichCells(object = pbmc_small, idents = 2))
 #
 WilcoxDETest <- function(
   data.use,
