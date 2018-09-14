@@ -116,7 +116,7 @@ AddTCC <- function(
   }
   
   mart <- biomaRt::useMart(biomart = "ensembl", dataset = dataset)
-  ensg.map <- getBM(
+  ensg.map <- biomaRt::getBM(
     attributes = c('ensembl_gene_id', 'external_gene_name'),
     mart = mart
   )
