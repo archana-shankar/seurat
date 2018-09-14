@@ -262,6 +262,10 @@ HTODemux <- function(
     assay = assay,
     verbose = FALSE
   )[[assay]]
+  #checking for any cluster with all zero counts for any barcode
+  if (sum(average_hto == 0) > 0){
+    stop("Cells with zero counts exist as a cluster.")
+  }
   #create a matrix to store classification result
   hto_discrete <- GetAssayData(object = object, assay = assay)
   hto_discrete[hto_discrete > 0] <- 0
@@ -806,6 +810,7 @@ FindVariableFeatures.Assay <- function(
     verbose = verbose
   )
   object[[names(x = hvf.info)]] <- hvf.info
+  hvf.info <- hvf.info[which(x = hvf.info$mean != 0), ]
   if (selection.method == "vst") {
     hvf.info <- hvf.info[order(hvf.info$variance.standardized, decreasing = TRUE), , drop = FALSE]
   } else {
@@ -883,7 +888,8 @@ NormalizeData.default <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   if (is.null(x = normalization.method)) {
     return(object)
@@ -915,7 +921,8 @@ NormalizeData.Assay <- function(
   object,
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
-  verbose = TRUE
+  verbose = TRUE,
+  ...
 ) {
   object <- SetAssayData(
     object = object,
@@ -948,7 +955,8 @@ NormalizeData.Seurat <- function(
   normalization.method = "LogNormalize",
   scale.factor = 1e4,
   verbose = TRUE,
-  workflow.name = NULL
+  workflow.name = NULL,
+  ...
 ) {
   assay <- assay %||% DefaultAssay(object = object)
   if (!is.null(workflow.name)) {

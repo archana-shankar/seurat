@@ -271,8 +271,8 @@ FindMarkers.default <- function(
   pseudocount.use = 1,
   ...
 ) {
-  features <- features %||% rownames(object)
-  methods.noprefiliter <- c("DESeq2")
+  features <- features %||% rownames(x = object)
+  methods.noprefiliter <- c("DESeq2", "zingeR")
   if (test.use %in% methods.noprefiliter) {
     features <- rownames(object)
     min.diff.pct <- -Inf
@@ -280,26 +280,26 @@ FindMarkers.default <- function(
   }
   # error checking
   if (length(x = cells.1) == 0) {
-    message(paste("Cell group 1 is empty - no cells with identity class", cells.1))
+    stop("Cell group 1 is empty - no cells with identity class ", cells.1)
+  } else if (length(x = cells.2) == 0) {
+    stop("Cell group 2 is empty - no cells with identity class ", cells.2)
     return(NULL)
-  }
-  if (length(x = cells.2) == 0) {
-    message(paste("Cell group 2 is empty - no cells with identity class", cells.2))
-    return(NULL)
-  }
-  if (length(x = cells.1) < min.cells.group) {
-    stop(paste("Cell group 1 has fewer than", as.character(x = min.cells.group), "cells"))
-  }
-  if (length(x = cells.2) < min.cells.group) {
-    stop(paste("Cell group 2 has fewer than", as.character(x = min.cells.group), " cells"))
-  }
-  if(any(!cells.1 %in% colnames(x = object))) {
+  } else if (length(x = cells.1) < min.cells.group) {
+    stop("Cell group 1 has fewer than ", min.cells.group, " cells")
+  } else if (length(x = cells.2) < min.cells.group) {
+    stop("Cell group 2 has fewer than ", min.cells.group, " cells")
+  } else if (any(!cells.1 %in% colnames(x = object))) {
     bad.cells <- colnames(object)[which(!as.character(x = cells.1) %in% colnames(object))]
-    stop(paste0("The following cell names provided to cells.1 are not present: ", paste(bad.cells, collapse = ", ")))
-  }
-  if(any(!cells.2 %in% colnames(x = object))) {
-    bad.cells <- colnames(x = object)[which(!as.character(x = cells.2) %in% colnames(x = object))]
-    stop(paste0("The following cell names provided to cells.2 are not present: ", paste(bad.cells, collapse = ", ")))
+    stop(
+      "The following cell names provided to cells.1 are not present: ",
+      paste(bad.cells, collapse = ", ")
+    )
+  } else if (any(!cells.2 %in% colnames(x = object))) {
+    bad.cells <- colnames(object)[which(!as.character(x = cells.2) %in% colnames(object))]
+    stop(
+      "The following cell names provided to cells.2 are not present: ",
+      paste(bad.cells, collapse = ", ")
+    )
   }
   features.test <- features
   if (tcc) {
@@ -308,23 +308,13 @@ FindMarkers.default <- function(
     # feature selection (based on percentages)
     thresh.min <- 0
     pct.1 <- round(
-      x = apply(
-        X = object[features, cells.1, drop = FALSE],
-        MARGIN = 1,
-        FUN = function(x) {
-          return(sum(x > thresh.min) / length(x = x))
-        }
-      ),
+      x = rowSums(x = object[features, cells.1, drop = FALSE] > thresh.min) /
+        length(x = cells.1),
       digits = 3
     )
     pct.2 <- round(
-      x = apply(
-        X = object[features, cells.2, drop = FALSE],
-        MARGIN = 1,
-        FUN = function(x) {
-          return(sum(x > thresh.min) / length(x = x))
-        }
-      ),
+      x = rowSums(x = object[features, cells.2, drop = FALSE] > thresh.min) /
+        length(x = cells.2),
       digits = 3
     )
     data.alpha <- cbind(pct.1, pct.2)
@@ -342,16 +332,27 @@ FindMarkers.default <- function(
     if (length(x = features) == 0) {
       stop("No features pass min.diff.pct threshold")
     }
-    # feature selection (based on average difference)
-    data.1 <- apply(X = object[features, cells.1, drop = FALSE],
-                    MARGIN = 1,
-                    FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
-    data.2 <- apply(X = object[features, cells.2, drop = FALSE],
-                    MARGIN = 1,
-                    FUN = function(x) log(x = mean(x = expm1(x = x)) + pseudocount.use))
+    # gene selection (based on average difference)
+    data.1 <- apply(
+      X = object[features, cells.1, drop = FALSE],
+      MARGIN = 1,
+      FUN = function(x) {
+        return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+      }
+    )
+    data.2 <- apply(
+      X = object[features, cells.2, drop = FALSE],
+      MARGIN = 1,
+      FUN = function(x) {
+        return(log(x = mean(x = expm1(x = x)) + pseudocount.use))
+      }
+    )
     total.diff <- (data.1 - data.2)
-    if (!only.pos) features.diff <- names(x = which(x = abs(x = total.diff) > logfc.threshold))
-    if (only.pos) features.diff <- names(x = which(x = total.diff > logfc.threshold))
+    features.diff <- if (only.pos) {
+      names(x = which(x = total.diff > logfc.threshold))
+    } else {
+      names(x = which(x = abs(x = total.diff) > logfc.threshold))
+    }
     features <- intersect(x = features, y = features.diff)
     if (length(x = features) == 0) {
       stop("No features pass logfc.threshold threshold")

@@ -201,7 +201,6 @@ DoHeatmap <- function(
   )
   data <- FetchData(
     object = object,
-    # vars = rev(x = features),
     vars = features,
     cells = cells,
     slot = slot
@@ -276,7 +275,7 @@ HTOHeatmap <- function(
   DefaultAssay(object = object) <- assay
   Idents(object = object) <- object[[hto.classification, drop = TRUE]]
   object <- subset(
-    object = object,
+    x = object,
     select = sample(x = colnames(x = object), size = ncells)
   )
   classification <- object[[hto.classification]]
@@ -285,7 +284,9 @@ HTOHeatmap <- function(
   doublets <- which(object[[global.classification]] == 'Doublet')
   doublet.ids <- sort(x = unique(x = as.character(x = classification[doublets, ])))
   heatmap.levels <- c(singlet.ids, doublet.ids, 'Negative')
-  Idents(object = object, cells = doublets) <- 'Multiplet'
+  if (length(x = doublets) > 0) {
+    Idents(object = object, cells = doublets) <- 'Multiplet'
+  }
   Idents(object = object) <- factor(
     x = Idents(object = object),
     levels = c(singlet.ids, 'Multiplet', 'Negative')
@@ -320,14 +321,15 @@ HTOHeatmap <- function(
 #' @param idents Which classes to include in the plot (default is all)
 #' @param sort Sort identity classes (on the x-axis) by the average
 #' expression of the attribute being potted
+#' @param assay Name of assay to use, defaults to the active assay
+#' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param y.max Maximum y axis value
 #' @param same.y.lims Set all the y-axis limits to the same values
-#' @param group.by Group (color) cells in different ways (for example, orig.ident)
 #' @param log plot Y axis on log scale
 #' @param ncol Number of columns if multiple plots are displayed
 #' @param combine Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features
 #' @param slot Use non-normalized counts data for plotting
-#' @param \dots additional parameters to pass to FetchData (for example, use.imputed, use.scaled, use.raw)
+#' @param ... Ignored
 #'
 #' @return A ggplot object
 #'
@@ -342,6 +344,7 @@ RidgePlot <- function(
   cols = NULL,
   idents = NULL,
   sort = FALSE,
+  assay = NULL,
   group.by = NULL,
   y.max = NULL,
   same.y.lims = FALSE,
@@ -358,6 +361,7 @@ RidgePlot <- function(
     idents = idents,
     ncol = ncol,
     sort = sort,
+    assay = assay,
     y.max = y.max,
     same.y.lims = same.y.lims,
     cols = cols,
@@ -392,6 +396,7 @@ VlnPlot <- function(
   pt.size = 1,
   idents = NULL,
   sort = FALSE,
+  assay = NULL,
   group.by = NULL,
   adjust.use = 1,
   y.max = NULL,
@@ -409,6 +414,7 @@ VlnPlot <- function(
     idents = idents,
     ncol = ncol,
     sort = sort,
+    assay = assay,
     y.max = y.max,
     same.y.lims = same.y.lims,
     adjust.use = adjust.use,
@@ -793,12 +799,11 @@ FeaturePlot <- function(
 #' @param cell1 Cell 1 name
 #' @param cell2 Cell 2 name
 #' @param features Features to plot (default, all features)
-#' @param ... Extra parameters passed to \code{kde2d}
+#' @param highlight Features to highlight
 #'
 #' @return A ggplot object
 #'
 #' @export
-#' @seealso \code{\link{MASS::kde2d}}
 #'
 #' @aliases CellPlot
 #'
@@ -810,8 +815,10 @@ CellScatter <- function(
   cell1,
   cell2,
   features = NULL,
+  highlight = NULL,
   cols = NULL,
   pt.size = 1,
+  smooth = FALSE,
   ...
 ) {
   features <- features %||% rownames(x = object)
@@ -825,7 +832,8 @@ CellScatter <- function(
     data = data,
     cols = cols,
     pt.size = pt.size,
-    smooth = TRUE,
+    rows.highlight = highlight,
+    smooth = smooth,
     ...
   )
   return(plot)
@@ -833,12 +841,12 @@ CellScatter <- function(
 
 #' Scatter plot of single cell data
 #'
-#' Creates a scatter plot of two features (typically gene expression), across a
+#' Creates a scatter plot of two features (typically feature expression), across a
 #' set of single cells. Cells are colored by their identity class. Pearson
 #' correlation between the two features is displayed above the plot.
 #'
 #' @param object Seurat object
-#' @param feature1 First feature to plot. Typically gene expression but can also
+#' @param feature1 First feature to plot. Typically feature expression but can also
 #' be metrics, PC scores, etc. - anything that can be retreived with FetchData
 #' @param feature2 Second feature to plot.
 #' @param cells Cells to include on the scatter plot.
@@ -846,12 +854,12 @@ CellScatter <- function(
 #' @param pt.size Size of the points on the plot
 #' @param shape.by Ignored for now
 #' @param span Spline span in loess function call, if \code{NULL}, no spline added
-#' @param slot Use non-normalized counts data for plotting
+#' @param smooth Smooth the graph (similar to smoothScatter)
+#' @param slot Slot to pull data from, should be one of 'counts', 'data', or 'scale.data'
 #' @param ... Ignored for now
 #'
 #' @return A ggplot object
 #'
-#' @importFrom cowplot theme_cowplot
 #' @importFrom ggplot2 geom_smooth aes_string
 #' @export
 #'
@@ -869,6 +877,7 @@ FeatureScatter <- function(
   pt.size = 1,
   shape.by = NULL,
   span = NULL,
+  smooth = FALSE,
   slot = 'data',
   ...
 ) {
@@ -883,6 +892,7 @@ FeatureScatter <- function(
     col.by = Idents(object = object)[cells],
     cols = cols,
     pt.size = pt.size,
+    smooth = smooth,
     legend.title = 'Identity'
   )
   if (!is.null(x = span)) {
@@ -892,7 +902,6 @@ FeatureScatter <- function(
       span = span
     )
   }
-  plot <- plot + theme_cowplot()
   return(plot)
 }
 
@@ -902,6 +911,8 @@ FeatureScatter <- function(
 #' @param cols Colors to specify non-variable/variable status
 #' @param assay Assay to pull variable features from
 #' @param log Plot the x-axis in log scale
+#'
+#' @return A ggplot object
 #'
 #' @importFrom ggplot2 labs scale_color_manual scale_x_log10
 #' @export
@@ -1629,6 +1640,76 @@ VizDimReduction <- function(
 # Exported utility functions
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+# NEED TO TREAT PNG PACKAGE PROPERLY
+#' Augments ggplot2 scatterplot with a PNG image.
+#'
+#' Used in to creating vector friendly plots. Exported as it may be useful to others more broadly
+#'
+#' @param plot ggplot2 scatterplot. Typically will have only labeled axes and no points
+#' @param img location of a PNG file that contains the points to overlay onto the scatterplot.
+#'
+#' @return ggplot2 scatterplot that includes the original axes but also the PNG file
+#'
+#' @importFrom png readPNG
+#' @importFrom ggplot2 annotation_raster ggplot_build
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' data("pbmc_small")
+#' p <- PCAPlot(pbmc_small, do.return = TRUE)
+#' ggsave(filename = 'pcaplot.png', plot = p, device = png)
+#' pmod <- AugmentPlot(plot = p, img = 'pcaplot.png')
+#' pmod
+#' }
+#'
+AugmentPlot <- function(plot, img) {
+  range.values <- c(
+    ggplot_build(plot = plot)$layout$panel_params[[1]]$x.range,
+    ggplot_build(plot = plot)$layout$panel_params[[1]]$y.range
+  )
+  img <- readPNG(source = img)
+  p1mod <- plot + annotation_raster(
+    img,
+    xmin = range.values[1],
+    xmax = range.values[2],
+    ymin = range.values[3],
+    ymax = range.values[4]
+  )
+  return(p1mod)
+}
+
+#' @inheritParams CustomPalette
+#'
+#' @export
+#'
+#' @rdname CustomPalette
+#' @aliases BlackAndWhite
+#'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' plot(df, col = BlackAndWhite())
+#'
+BlackAndWhite <- function(mid = NULL, k = 50) {
+  return(CustomPalette(low = "white", high = "black", mid = mid, k = k))
+}
+
+#' @inheritParams CustomPalette
+#'
+#' @export
+#'
+#' @rdname CustomPalette
+#' @aliases BlueAndRed
+#'
+#' @examples
+#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
+#' plot(df, col = BlueAndRed())
+#'
+BlueAndRed <- function(k = 50) {
+  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
+}
+
 #' Combine ggplot2-based plots into a single plot
 #'
 #' @param plots A list of gg objects
@@ -1702,6 +1783,56 @@ CombinePlots <- function(plots, ncol = NULL, legend = NULL, ...) {
     plots[[1]]
   }
   return(plots.combined)
+}
+
+#' Create a custom color palette
+#'
+#' Creates a custom color palette based on low, middle, and high color values
+#'
+#' @param low low color
+#' @param high high color
+#' @param mid middle color. Optional.
+#' @param k number of steps (colors levels) to include between low and high values
+#'
+#' @return A color palette for plotting
+#'
+#' @importFrom grDevices col2rgb rgb
+#' @export
+#'
+#' @rdname CustomPalette
+#' @examples
+#' myPalette <- CustomPalette()
+#' myPalette
+#'
+CustomPalette <- function(
+  low = "white",
+  high = "red",
+  mid = NULL,
+  k = 50
+) {
+  low <- col2rgb(col = low) / 255
+  high <- col2rgb(col = high) / 255
+  if (is.null(x = mid)) {
+    r <- seq(from = low[1], to = high[1], len = k)
+    g <- seq(from = low[2], to = high[2], len = k)
+    b <- seq(from = low[3], to = high[3], len = k)
+  } else {
+    k2 <- round(x = k / 2)
+    mid <- col2rgb(col = mid) / 255
+    r <- c(
+      seq(from = low[1], to = mid[1], len = k2),
+      seq(from = mid[1], to = high[1], len = k2)
+    )
+    g <- c(
+      seq(from = low[2], to = mid[2], len = k2),
+      seq(from = mid[2], to = high[2],len = k2)
+    )
+    b <- c(
+      seq(from = low[3], to = mid[3], len = k2),
+      seq(from = mid[3], to = high[3], len = k2)
+    )
+  }
+  return(rgb(red = r, green = g, blue = b))
 }
 
 #' Feature Locator
@@ -1840,69 +1971,85 @@ HoverLocator <- function(
   )
 }
 
-#' Create a custom color palette
+#' Add text labels to a ggplot2 plot
 #'
-#' Creates a custom color palette based on low, middle, and high color values
+#' @param plot A ggplot2 plot with a GeomPoint layer
+#' @param points A vector of points to label; if \code{NULL}, will use all points in the plot
+#' @param labels A vector of labels for the points; if \code{NULL}, will use
+#' rownames of the data provided to the plot at the points selected
+#' @param repel Use \code{geom_text_repel} to create a nicely-repelled labels; this
+#' is slow when a lot of points are being plotted. If using \code{repel}, set \code{xnudge}
+#' and \code{ynudge} to 0
+#' @param xnudge,ynudge Amount to nudge X and Y coordinates of labels by
+#' @param ... Extra parameters passed to \code{geom_text}
 #'
-#' @param low low color
-#' @param high high color
-#' @param mid middle color. Optional.
-#' @param k number of steps (colors levels) to include between low and high values
+#' @return A ggplot object
 #'
-#' @return A color palette for plotting
-#'
-#' @importFrom grDevices col2rgb rgb
+#' @importFrom ggrepel geom_text_repel
+#' @importFrom ggplot2 geom_text aes_string
 #' @export
 #'
-#' @rdname CustomPalette
-#' @examples
-#' myPalette <- CustomPalette()
-#' myPalette
+#' @seealso \code{\link{ggplot2::geom_text}}
 #'
-CustomPalette <- function(
-  low = "white",
-  high = "red",
-  mid = NULL,
-  k = 50
+#' @examples
+#' plot <- CellScatter(object = pbmc_small)
+#' cc <- TopCells(object = pbmc_small[['pca']])
+#' Labeler(plot = plot, points = cc)
+#'
+Labeler <- function(
+  plot,
+  points,
+  labels = NULL,
+  repel = FALSE,
+  xnudge = 0.3,
+  ynudge = 0.05,
+  ...
 ) {
-  low <- col2rgb(col = low) / 255
-  high <- col2rgb(col = high) / 255
-  if (is.null(x = mid)) {
-    r <- seq(from = low[1], to = high[1], len = k)
-    g <- seq(from = low[2], to = high[2], len = k)
-    b <- seq(from = low[3], to = high[3], len = k)
-  } else {
-    k2 <- round(x = k / 2)
-    mid <- col2rgb(col = mid) / 255
-    r <- c(
-      seq(from = low[1], to = mid[1], len = k2),
-      seq(from = mid[1], to = high[1], len = k2)
-    )
-    g <- c(
-      seq(from = low[2], to = mid[2], len = k2),
-      seq(from = mid[2], to = high[2],len = k2)
-    )
-    b <- c(
-      seq(from = low[3], to = mid[3], len = k2),
-      seq(from = mid[3], to = high[3], len = k2)
-    )
+  geoms <- sapply(
+    X = plot$layers,
+    FUN = function(layer) {
+      return(class(layer$geom)[1])
+    }
+  )
+  geoms <- which(x = geoms == 'GeomPoint')
+  if (length(x = geoms) == 0) {
+    stop("Labelling only work on ggplot-based plots with a GeomPoint layer")
   }
-  return(rgb(red = r, green = g, blue = b))
-}
-
-#' @inheritParams CustomPalette
-#'
-#' @export
-#'
-#' @rdname CustomPalette
-#' @aliases BlackAndWhite
-#'
-#' @examples
-#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-#' plot(df, col = BlackAndWhite())
-#'
-BlackAndWhite <- function(mid = NULL, k = 50) {
-  return(CustomPalette(low = "white", high = "black", mid = mid, k = k))
+  geoms <- min(geoms)
+  points <- points %||% rownames(x = plot$data)
+  if (is.numeric(x = points)) {
+    points <- rownames(x = plot$data)
+  }
+  points <- intersect(x = points, y = rownames(x = plot$data))
+  if (length(x = points) == 0) {
+    stop("Cannot find points provided")
+  }
+  labels <- labels %||% points
+  labels <- as.character(x = labels)
+  plot$data$labels <- ''
+  plot$data[points, 'labels'] <- labels
+  x <- as.character(x = plot$mapping$x %||% plot$layers[[geoms]]$mapping$x)[2]
+  y <- as.character(x = plot$mapping$y %||% plot$layers[[geoms]]$mapping$y)[2]
+  geom.use <- ifelse(test = repel, yes = geom_text_repel, no = geom_text)
+  if (repel) {
+    if (!all(c(xnudge, ynudge) == 0)) {
+      message("When using repel, set xnudge and ynudge to 0 for optimal results")
+    }
+    if (nrow(x = plot$data) > 1500) {
+      warning(
+        "repel is slow with a large number of points",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+  }
+  plot <- plot + geom.use(
+    mapping = aes_string(x = x, y = y, label = 'labels'),
+    nudge_x = xnudge,
+    nudge_y = ynudge,
+    ...
+  )
+  return(plot)
 }
 
 #' @inheritParams CustomPalette
@@ -1918,60 +2065,6 @@ BlackAndWhite <- function(mid = NULL, k = 50) {
 #'
 PurpleAndYellow <- function(k = 50) {
   return(CustomPalette(low = "magenta", high = "yellow", mid = "black", k = k))
-}
-
-#' @inheritParams CustomPalette
-#'
-#' @export
-#'
-#' @rdname CustomPalette
-#' @aliases BlueAndRed
-#'
-#' @examples
-#' df <- data.frame(x = rnorm(n = 100, mean = 20, sd = 2), y = rbinom(n = 100, size = 100, prob = 0.2))
-#' plot(df, col = BlueAndRed())
-#'
-BlueAndRed <- function(k = 50) {
-  return(CustomPalette(low = "#313695" , high = "#A50026", mid = "#FFFFBF", k = k))
-}
-
-# NEED TO TREAT PNG PACKAGE PROPERLY
-#' Augments ggplot2 scatterplot with a PNG image.
-#'
-#' Used in to creating vector friendly plots. Exported as it may be useful to others more broadly
-#'
-#' @param plot ggplot2 scatterplot. Typically will have only labeled axes and no points
-#' @param img location of a PNG file that contains the points to overlay onto the scatterplot.
-#'
-#' @return ggplot2 scatterplot that includes the original axes but also the PNG file
-#'
-#' @importFrom png readPNG
-#' @importFrom ggplot2 annotation_raster ggplot_build
-#'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' data("pbmc_small")
-#' p <- PCAPlot(pbmc_small, do.return = TRUE)
-#' ggsave(filename = 'pcaplot.png', plot = p, device = png)
-#' pmod <- AugmentPlot(plot = p, img = 'pcaplot.png')
-#' pmod
-#' }
-AugmentPlot <- function(plot, img) {
-  range.values <- c(
-    ggplot_build(plot = plot)$layout$panel_params[[1]]$x.range,
-    ggplot_build(plot = plot)$layout$panel_params[[1]]$y.range
-  )
-  img <- readPNG(source = img)
-  p1mod <- plot + annotation_raster(
-    img,
-    xmin = range.values[1],
-    xmax = range.values[2],
-    ymin = range.values[3],
-    ymax = range.values[4]
-  )
-  return(p1mod)
 }
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2257,6 +2350,32 @@ WhiteBackground <- function(...) {
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # Internal
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Calculate bandwidth for use in ggplot2-based smooth scatter plots
+#
+# Inspired by MASS::bandwidth.nrd and graphics:::.smoothScatterCalcDensity
+#
+# @param data A two-column data frame with X and Y coordinates for a plot
+#
+# @return The calculated bandwidth
+#
+#' @importFrom stats quantile var
+Bandwidth <- function(data) {
+  r <- diff(x = apply(
+    X = data,
+    MARGIN = 2,
+    FUN = quantile,
+    probs = c(0.05, 0.95),
+    na.rm = TRUE,
+    names = FALSE
+  ))
+  h <- abs(x = r[2L] - r[1L]) / 1.34
+  h <- ifelse(test = h == 0, yes = 1, no = h)
+  bandwidth <- 4 * 1.06 *
+    min(sqrt(x = apply(X = data, MARGIN = 2, FUN = var)), h) *
+    nrow(x = data) ^ (-0.2)
+  return(bandwidth)
+}
 
 # Blend two or more colors together
 #
@@ -2649,7 +2768,7 @@ EvaluateCCs <- function(
 # @param log plot Y axis on log scale
 # @param combine Combine plots using cowplot::plot_grid
 # @param slot Use non-normalized counts data for plotting
-# @param ... Ignores
+# @param ... Ignored
 #
 #
 ExIPlot <- function(
@@ -2659,6 +2778,7 @@ ExIPlot <- function(
   idents = NULL,
   ncol = NULL,
   sort = FALSE,
+  assay = NULL,
   y.max = NULL,
   same.y.lims = FALSE,
   adjust = 1,
@@ -2670,6 +2790,8 @@ ExIPlot <- function(
   slot = 'data',
   ...
 ) {
+  assay <- assay %||% DefaultAssay(object = object)
+  DefaultAssay(object = object) <- assay
   ncol <- ncol %||% ifelse(
     test = length(x = features) > 9,
     yes = 4,
@@ -2679,7 +2801,7 @@ ExIPlot <- function(
   if (is.null(x = idents)) {
     cells <- colnames(x = object)
   } else {
-    cells <- Idents(object = object)[Idents(object = object) %in% idents]
+    cells <- names(x = Idents(object = object)[Idents(object = object) %in% idents])
   }
   data <- data[cells, , drop = FALSE]
   idents <- if (is.null(x = group.by)) {
@@ -2748,8 +2870,19 @@ FixPlotParam <- function(object, function.name, param.name, param.value) {
 #
 GGpointToBase <- function(plot, do.plot = TRUE, ...) {
   plot.build <- ggplot_build(plot = plot)
-  build.data <- plot.build$data[[1]]
-  plot.data <- build.data[, c('x', 'y', 'colour', 'shape', 'size')]
+  cols <- c('x', 'y', 'colour', 'shape', 'size')
+  build.use <- which(x = vapply(
+    X = plot.build$data,
+    FUN = function(dat) {
+      return(all(cols %in% colnames(x = dat)))
+    },
+    FUN.VALUE = logical(length = 1L)
+  ))
+  if (length(x = build.use) == 0) {
+    stop("GGpointToBase only works on geom_point ggplot objects")
+  }
+  build.data <- plot.build$data[[min(build.use)]]
+  plot.data <- build.data[, cols]
   names(x = plot.data) <- c(
     plot.build$plot$labels$x,
     plot.build$plot$labels$y,
@@ -3041,27 +3174,54 @@ SetQuantile <- function(cutoff, data) {
 # @param cols An optional vector of colors to use
 # @param pt.size Point size for the plot
 # @param smooth Make a smoothed scatter plot
+# @param rows.highight A vector of rows to highlight (like cells.highlight in SingleDimPlot)
 # @param legend.title Optional legend title
 # @param ... Extra parameters to MASS::kde2d
 #
 #' @importFrom stats cor
-#' @importFrom MASS kde2d
+#' @importFrom cowplot theme_cowplot
 #' @importFrom RColorBrewer brewer.pal.info
 #' @importFrom ggplot2 ggplot geom_point aes_string labs scale_color_brewer
-#' scale_color_manual geom_tile guides element_rect
+#' scale_color_manual guides stat_density2d aes scale_fill_continuous
 #'
 SingleCorPlot <- function(
   data,
   col.by = NULL,
   cols = NULL,
-  pt.size = 1,
+  pt.size = NULL,
   smooth = FALSE,
+  rows.highlight = NULL,
   legend.title = NULL,
   na.value = 'grey50',
   ...
 ) {
-  names.plot <- colnames(x = data)
+  pt.size <- pt.size <- pt.size %||% min(1583 / nrow(x = data), 1)
+  orig.names <- colnames(x = data)
+  names.plot <- colnames(x = data) <- gsub(
+    pattern = '-',
+    replacement = '.',
+    x = colnames(x = data),
+    fixed = TRUE
+  )
   plot.cor <- round(x = cor(x = data[, 1], y = data[, 2]), digits = 2)
+  if (!is.null(x = rows.highlight)) {
+    highlight.info <- SetHighlight(
+      cells.highlight = rows.highlight,
+      cells.all = rownames(x = data),
+      sizes.highlight = pt.size,
+      cols.highlight = 'red',
+      col.base = 'black',
+      pt.size = pt.size
+    )
+    cols <- highlight.info$color
+    col.by <- factor(
+      x = highlight.info$highlight,
+      levels = rev(x = highlight.info$plot.order)
+    )
+    plot.order <- order(col.by)
+    data <- data[plot.order, ]
+    col.by <- col.by[plot.order]
+  }
   if (!is.null(x = col.by)) {
     data$colors <- col.by
   }
@@ -3069,21 +3229,31 @@ SingleCorPlot <- function(
     data = data,
     mapping = aes_string(x = names.plot[1], y = names.plot[2])
   ) +
-    labs(x = names.plot[1], y = names.plot[2], title = plot.cor, color = legend.title)
-  if (!is.null(x = col.by)) {
-    plot <- plot + geom_point(mapping = aes_string(color = 'colors'), size = pt.size)
-  } else {
-    plot <- plot + geom_point(size = pt.size)
-  }
-  if (smooth) {
-    density <- kde2d(x = data[, 1], y = data[, 2], ...)
-    density <- data.frame(
-      x = unlist(x = lapply(X = density$x, FUN = rep.int, times = length(x = density$x))),
-      y = rep.int(x = density$y, times = length(x = density$y)),
-      z = unlist(x = as.data.frame(x = density$z))
+    labs(
+      x = orig.names[1],
+      y = orig.names[2],
+      title = plot.cor,
+      color = legend.title
     )
-    plot <- plot + geom_tile(mapping = aes_string(x = 'x', y = 'y', fill = 'z'), data = density) +
+  if (smooth) {
+    plot <- plot + stat_density2d(
+      mapping = aes(fill = ..density.. ^ 0.25),
+      geom = 'tile',
+      contour = FALSE,
+      n = 200,
+      h = Bandwidth(data = data[, names.plot])
+    ) +
+      scale_fill_continuous(low = 'white', high = 'dodgerblue4') +
       guides(fill = FALSE)
+  }
+  if (!is.null(x = col.by)) {
+    plot <- plot + geom_point(
+      mapping = aes_string(color = 'colors'),
+      position = 'jitter',
+      size = pt.size
+    )
+  } else {
+    plot <- plot + geom_point(position = 'jitter', size = pt.size)
   }
   if (!is.null(x = cols)) {
     cols.scale <- if (length(x = cols) == 1 && cols %in% rownames(x = brewer.pal.info)) {
@@ -3092,8 +3262,11 @@ SingleCorPlot <- function(
       scale_color_manual(values = cols, na.value = na.value)
     }
     plot <- plot + cols.scale
+    if (!is.null(x = rows.highlight)) {
+      plot <- plot + guides(color = FALSE)
+    }
   }
-  plot <- plot + WhiteBackground(panel.border = element_rect(fill = NA, colour = 'black'))
+  plot <- plot + theme_cowplot()
   return(plot)
 }
 
