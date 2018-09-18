@@ -465,6 +465,7 @@ FindMarkers.default <- function(
 #' @param assay Assay to use in differential expression testing
 #'
 #' @describeIn FindMarkers Run differential expression test on a Seurat object
+#' @importFrom pbapply pblapply
 #' @export
 #' @method FindMarkers Seurat
 #'
@@ -534,12 +535,19 @@ FindMarkers.Seurat <- function(
     )
   }
   if (tcc) {
-    features.list<- lapply(
-      X = features, 
-      FUN = function(x) {
-        GeneToECMap(object = object, gene = x, ensg = ensg, ambig = ambig.tccs)
-      })
-    names(x = features.list) <- features
+    features <- features %||% names(x = slot(object = object, name = "tools")$tcc.maps$gene.to.ensg.map)
+    if (verbose) message("Determining EC-Gene mappings")
+    features.list <- GeneToECMap(
+      object = object,
+      gene = features,
+      ensg = ensg,
+      ambig = ambig.tccs,
+      verbose = FALSE
+    )
+    if (length(x = features) == 1) {
+      features.list <- list(features.list)
+      names(x = features.list) <- features
+    }
     features <- features.list
   }
   de.results <- FindMarkers(

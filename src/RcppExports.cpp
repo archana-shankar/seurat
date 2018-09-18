@@ -375,39 +375,61 @@ BEGIN_RCPP
 END_RCPP
 }
 // ECUniqueGene
-CharacterVector ECUniqueGene(CharacterVector ecs, std::string from_type, Environment ec_to_enst, Environment enst_to_ec, Environment enst_to_ensg, Environment ensg_to_enst, Environment ensg_to_gene, Environment gene_to_ensg);
-RcppExport SEXP _Seurat_ECUniqueGene(SEXP ecsSEXP, SEXP from_typeSEXP, SEXP ec_to_enstSEXP, SEXP enst_to_ecSEXP, SEXP enst_to_ensgSEXP, SEXP ensg_to_enstSEXP, SEXP ensg_to_geneSEXP, SEXP gene_to_ensgSEXP) {
+CharacterVector ECUniqueGene(CharacterVector ecs, bool ensg, bool verbose, Environment ec_to_enst, Environment enst_to_ec, Environment enst_to_ensg, Environment ensg_to_enst, Environment ensg_to_gene, Environment gene_to_ensg);
+RcppExport SEXP _Seurat_ECUniqueGene(SEXP ecsSEXP, SEXP ensgSEXP, SEXP verboseSEXP, SEXP ec_to_enstSEXP, SEXP enst_to_ecSEXP, SEXP enst_to_ensgSEXP, SEXP ensg_to_enstSEXP, SEXP ensg_to_geneSEXP, SEXP gene_to_ensgSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< CharacterVector >::type ecs(ecsSEXP);
-    Rcpp::traits::input_parameter< std::string >::type from_type(from_typeSEXP);
+    Rcpp::traits::input_parameter< bool >::type ensg(ensgSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< Environment >::type ec_to_enst(ec_to_enstSEXP);
     Rcpp::traits::input_parameter< Environment >::type enst_to_ec(enst_to_ecSEXP);
     Rcpp::traits::input_parameter< Environment >::type enst_to_ensg(enst_to_ensgSEXP);
     Rcpp::traits::input_parameter< Environment >::type ensg_to_enst(ensg_to_enstSEXP);
     Rcpp::traits::input_parameter< Environment >::type ensg_to_gene(ensg_to_geneSEXP);
     Rcpp::traits::input_parameter< Environment >::type gene_to_ensg(gene_to_ensgSEXP);
-    rcpp_result_gen = Rcpp::wrap(ECUniqueGene(ecs, from_type, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg));
+    rcpp_result_gen = Rcpp::wrap(ECUniqueGene(ecs, ensg, verbose, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg));
     return rcpp_result_gen;
 END_RCPP
 }
 // GeneToECMapC
-CharacterVector GeneToECMapC(CharacterVector gene, bool ambig, bool ensg, Environment ec_to_enst, Environment enst_to_ec, Environment enst_to_ensg, Environment ensg_to_enst, Environment ensg_to_gene, Environment gene_to_ensg);
-RcppExport SEXP _Seurat_GeneToECMapC(SEXP geneSEXP, SEXP ambigSEXP, SEXP ensgSEXP, SEXP ec_to_enstSEXP, SEXP enst_to_ecSEXP, SEXP enst_to_ensgSEXP, SEXP ensg_to_enstSEXP, SEXP ensg_to_geneSEXP, SEXP gene_to_ensgSEXP) {
+CharacterVector GeneToECMapC(CharacterVector gene, bool ambig, bool ensg, bool verbose, Environment ec_to_enst, Environment enst_to_ec, Environment enst_to_ensg, Environment ensg_to_enst, Environment ensg_to_gene, Environment gene_to_ensg);
+RcppExport SEXP _Seurat_GeneToECMapC(SEXP geneSEXP, SEXP ambigSEXP, SEXP ensgSEXP, SEXP verboseSEXP, SEXP ec_to_enstSEXP, SEXP enst_to_ecSEXP, SEXP enst_to_ensgSEXP, SEXP ensg_to_enstSEXP, SEXP ensg_to_geneSEXP, SEXP gene_to_ensgSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< CharacterVector >::type gene(geneSEXP);
     Rcpp::traits::input_parameter< bool >::type ambig(ambigSEXP);
     Rcpp::traits::input_parameter< bool >::type ensg(ensgSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< Environment >::type ec_to_enst(ec_to_enstSEXP);
     Rcpp::traits::input_parameter< Environment >::type enst_to_ec(enst_to_ecSEXP);
     Rcpp::traits::input_parameter< Environment >::type enst_to_ensg(enst_to_ensgSEXP);
     Rcpp::traits::input_parameter< Environment >::type ensg_to_enst(ensg_to_enstSEXP);
     Rcpp::traits::input_parameter< Environment >::type ensg_to_gene(ensg_to_geneSEXP);
     Rcpp::traits::input_parameter< Environment >::type gene_to_ensg(gene_to_ensgSEXP);
-    rcpp_result_gen = Rcpp::wrap(GeneToECMapC(gene, ambig, ensg, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg));
+    rcpp_result_gen = Rcpp::wrap(GeneToECMapC(gene, ambig, ensg, verbose, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg));
+    return rcpp_result_gen;
+END_RCPP
+}
+// GenesToECMap
+List GenesToECMap(CharacterVector genes, bool ambig, bool ensg, bool verbose, Environment ec_to_enst, Environment enst_to_ec, Environment enst_to_ensg, Environment ensg_to_enst, Environment ensg_to_gene, Environment gene_to_ensg);
+RcppExport SEXP _Seurat_GenesToECMap(SEXP genesSEXP, SEXP ambigSEXP, SEXP ensgSEXP, SEXP verboseSEXP, SEXP ec_to_enstSEXP, SEXP enst_to_ecSEXP, SEXP enst_to_ensgSEXP, SEXP ensg_to_enstSEXP, SEXP ensg_to_geneSEXP, SEXP gene_to_ensgSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< CharacterVector >::type genes(genesSEXP);
+    Rcpp::traits::input_parameter< bool >::type ambig(ambigSEXP);
+    Rcpp::traits::input_parameter< bool >::type ensg(ensgSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ec_to_enst(ec_to_enstSEXP);
+    Rcpp::traits::input_parameter< Environment >::type enst_to_ec(enst_to_ecSEXP);
+    Rcpp::traits::input_parameter< Environment >::type enst_to_ensg(enst_to_ensgSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ensg_to_enst(ensg_to_enstSEXP);
+    Rcpp::traits::input_parameter< Environment >::type ensg_to_gene(ensg_to_geneSEXP);
+    Rcpp::traits::input_parameter< Environment >::type gene_to_ensg(gene_to_ensgSEXP);
+    rcpp_result_gen = Rcpp::wrap(GenesToECMap(genes, ambig, ensg, verbose, ec_to_enst, enst_to_ec, enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -441,8 +463,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_Seurat_WriteEdgeFile", (DL_FUNC) &_Seurat_WriteEdgeFile, 3},
     {"_Seurat_DirectSNNToFile", (DL_FUNC) &_Seurat_DirectSNNToFile, 4},
     {"_Seurat_TCCMapC", (DL_FUNC) &_Seurat_TCCMapC, 9},
-    {"_Seurat_ECUniqueGene", (DL_FUNC) &_Seurat_ECUniqueGene, 8},
-    {"_Seurat_GeneToECMapC", (DL_FUNC) &_Seurat_GeneToECMapC, 9},
+    {"_Seurat_ECUniqueGene", (DL_FUNC) &_Seurat_ECUniqueGene, 9},
+    {"_Seurat_GeneToECMapC", (DL_FUNC) &_Seurat_GeneToECMapC, 10},
+    {"_Seurat_GenesToECMap", (DL_FUNC) &_Seurat_GenesToECMap, 10},
     {NULL, NULL, 0}
 };
 

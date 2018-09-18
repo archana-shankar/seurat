@@ -6,7 +6,7 @@
 \usage{
 AddTCC(object, tcc.counts, cell.names, ec.map, gene.map,
   dataset = "hsapiens_gene_ensembl", tcc.assay.name = "tcc",
-  intersect.cells = FALSE, verbose = TRUE)
+  intersect.cells = FALSE, min.ec.filter = 0, verbose = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -24,6 +24,9 @@ triplet sparse matrix format (i, j, x) (matrix.tsv from Kallisto)}
 
 \item{intersect.cells}{Return Seurat object with only cells with that also have TCC
 quantifications.}
+
+\item{min.ec.filter}{Only keep ECs with at least this many counts across all
+cells}
 
 \item{verbose}{prints output/progress bars}
 }

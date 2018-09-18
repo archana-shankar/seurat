@@ -506,9 +506,13 @@ StringVector HashTableLookup(Environment ht, StringVector key) {
     return(v);
   } else {
     for(int i=1; i<key.size(); ++i){
-      StringVector current_v = ht[Rcpp::as<std::string>(key[i])];
-      for(int j=0; j<current_v.size(); ++j){
-        v.push_back(current_v[j]);
+      try {
+        StringVector current_v = ht[Rcpp::as<std::string>(key[i])];
+        for(int j=0; j<current_v.size(); ++j){
+          v.push_back(current_v[j]);
+        }
+      } catch (std::exception& e) {
+        //skips elements not found
       }
     }
   }

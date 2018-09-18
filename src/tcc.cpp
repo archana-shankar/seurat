@@ -75,16 +75,30 @@ StringVector TCCMapC(StringVector from, std::string from_type,
 
 //Return only ECs that map uniquely to one gene
 //[[Rcpp::export]]
-CharacterVector ECUniqueGene(CharacterVector ecs, std::string from_type,
+CharacterVector ECUniqueGene(CharacterVector ecs, bool ensg, bool verbose,
                              Environment ec_to_enst, Environment enst_to_ec, 
                              Environment enst_to_ensg, Environment ensg_to_enst, 
                              Environment ensg_to_gene, Environment gene_to_ensg) {
   CharacterVector unambig_ecs;
+  std::string to_type;
+  if (ensg){
+    to_type = "ENSG";
+  } else {
+    to_type = "GENE";
+  }
   for(int i=0; i<ecs.size(); ++i){
     CharacterVector ec = Rcpp::as<CharacterVector>(ecs[i]);
-    CharacterVector genes = TCCMapC(ec, "EC", from_type, ec_to_enst, enst_to_ec,
-                                    enst_to_ensg, ensg_to_enst, ensg_to_gene,
-                                    gene_to_ensg);
+    CharacterVector genes;
+    try {
+      genes = TCCMapC(ec, "EC", to_type, ec_to_enst, enst_to_ec,
+                      enst_to_ensg, ensg_to_enst, ensg_to_gene,
+                      gene_to_ensg);
+    } catch(std::exception& e) {
+      if (verbose) {
+        Rcout << ec << " doesn't map to any" << to_type << std::endl;
+      }
+    }
+
     if (genes.size() == 1){
       unambig_ecs.push_back(ecs[i]);
     }
@@ -93,7 +107,7 @@ CharacterVector ECUniqueGene(CharacterVector ecs, std::string from_type,
 }
 
 //[[Rcpp::export]]
-CharacterVector GeneToECMapC(CharacterVector gene, bool ambig, bool ensg,
+CharacterVector GeneToECMapC(CharacterVector gene, bool ambig, bool ensg, bool verbose,
                              Environment ec_to_enst, Environment enst_to_ec,
                              Environment enst_to_ensg, Environment ensg_to_enst,
                              Environment ensg_to_gene, Environment gene_to_ensg)
@@ -108,9 +122,25 @@ CharacterVector GeneToECMapC(CharacterVector gene, bool ambig, bool ensg,
   if(ambig) {
     return(ecs);
   }
-  CharacterVector unambig_ecs = ECUniqueGene(ecs, from_type, ec_to_enst, 
+  CharacterVector unambig_ecs = ECUniqueGene(ecs, ensg, verbose, ec_to_enst, 
                                              enst_to_ec, enst_to_ensg, 
                                              ensg_to_enst, ensg_to_gene, 
                                              gene_to_ensg);
   return(unambig_ecs);
+}
+
+//[[Rcpp::export]]
+List GenesToECMap(CharacterVector genes, bool ambig, bool ensg, bool verbose,
+                  Environment ec_to_enst, Environment enst_to_ec,
+                  Environment enst_to_ensg, Environment ensg_to_enst,
+                  Environment ensg_to_gene, Environment gene_to_ensg)
+{
+  List mappings(genes.size());
+  for(int i=0; i<genes.size(); ++i){
+    CharacterVector gene = Rcpp::as<CharacterVector>(genes[i]);
+    mappings[i] = GeneToECMapC(gene, ambig, ensg, verbose, ec_to_enst, enst_to_ec,
+                  enst_to_ensg, ensg_to_enst, ensg_to_gene, gene_to_ensg);
+  }
+  return(mappings);
+  
 }

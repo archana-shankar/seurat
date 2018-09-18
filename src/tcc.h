@@ -21,7 +21,7 @@ CharacterVector ECUniqueGene(CharacterVector ecs, Environment ec_to_enst,
                              Environment enst_to_ec, Environment enst_to_ensg,
                              Environment ensg_to_enst, Environment ensg_to_gene,
                              Environment gene_to_ensg);
-CharacterVector GeneToECMapC(CharacterVector gene, bool ambig, bool ensg,
+CharacterVector GeneToECMapC(CharacterVector gene, bool ambig, bool ensg, bool verbose,
                              Environment ec_to_enst, Environment enst_to_ec,
                              Environment enst_to_ensg, Environment ensg_to_enst,
                              Environment ensg_to_gene, Environment gene_to_ensg);

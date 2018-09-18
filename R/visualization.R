@@ -1335,7 +1335,10 @@ JackStrawPlot <- function(
 #' @param group2 Name of the second group to display
 #' @param ec.threshold Minimum counts per cell
 #' @param ambig Include ECs mapping to more than one gene?
-#'
+#' @param combine Combine plots into a single gg object; note that if TRUE; 
+#' themeing will not work when plotting multiple features
+#' @importFrom ggplot2 ggplot geom_bar theme xlab ylab position_dodge
+#' @importFrom cowplot theme_cowplot
 #' @return Returns ggplot object
 #' @export
 #'
@@ -1347,7 +1350,8 @@ TCCBarPlot <- function(
   group1, 
   group2,
   ec.threshold, 
-  ambig = FALSE
+  ambig = FALSE,
+  combine = TRUE
 ) {
   ecs <- GeneToECMap(object = object, gene = feature)
   n.cells <- ncol(x = object)
@@ -1366,59 +1370,67 @@ TCCBarPlot <- function(
   if (!is.null(x = group.by)){
     Idents(object = object) <- group.by
   }
-  cells.1 <- WhichCells(object = object, ident.keep = group1)
-  cells.2 <- WhichCells(object = object, ident.keep = group2)
+  cells.1 <- WhichCells(object = object, idents = group1)
+  cells.2 <- WhichCells(object = object, idents = group2)
   mean.counts.1 <- rowSums(
     x = GetAssayData(
       object = object, 
       assay = assay, 
       slot = "counts"
-    )[as.numeric(x = ecs.to.plot) + 1, cells.1]
+    )[ecs.to.plot, cells.1]
     ) / length(x = cells.1)
   mean.counts.2 <- rowSums(
     x = GetAssayData(
       object = object, 
       assay = assay, 
       slot = "counts"
-    )[as.numeric(x = ecs.to.plot) + 1, cells.2]
+    )[ecs.to.plot, cells.2]
     ) / length(x = cells.2)
   data.plot <- data.frame(
     ecs = rep(x = ecs.to.plot, 2),
-    group = c(rep(x = group1, length(x = ecs.to.plot)), rep(x = group2, length(x = ecs.to.plot))),
+    Group = c(rep(x = group1, length(x = ecs.to.plot)), rep(x = group2, length(x = ecs.to.plot))),
     mean.counts = c(mean.counts.1, mean.counts.2)
   )
-  p1 <- ggplot(data = data.plot, aes(x = ecs, y = mean.counts, fill = group)) +
+  data.plot <- data.plot[order(data.plot$mean.counts), ]
+  data.plot$ecs <- factor(x = data.plot$ecs, levels = rev(x = unique(x = data.plot$ecs)))
+  p1 <- ggplot(data = data.plot, aes(x = ecs, y = mean.counts, fill = Group)) +
     geom_bar(position = position_dodge(), stat = "identity") +
+    theme_cowplot() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
     ylab("Mean Counts") + 
-    xlab("Equivalence Class")
+    xlab("Equivalence Class") 
   
   gene.mean.1 <- sum(GetAssayData(
     object = object, 
     assay = assay, 
     slot = "counts"
-  )[as.numeric(x = ecs.to.plot) + 1, cells.1]
+  )[ecs.to.plot, cells.1]
   ) / length(x = cells.1)
   gene.mean.2 <- sum(GetAssayData(
     object = object, 
     assay = assay, 
     slot = "counts"
-  )[as.numeric(x = ecs.to.plot) + 1, cells.2]
+  )[ecs.to.plot, cells.2]
   ) / length(x = cells.2)
   
-  data.plot2 <- data.frame(group = c(group1, group2),
+  data.plot2 <- data.frame(Group = c(group1, group2),
                            mean.count = c(gene.mean.1, gene.mean.2),
                            feature = rep(x = feature, 2))
-  p2 <- ggplot(data.plot2, aes(x = feature, y = mean.count, fill = group)) +
+  p2 <- ggplot(data.plot2, aes(x = feature, y = mean.count, fill = Group)) +
     geom_bar(position = position_dodge(), stat = "identity") +
-    ylab("Mean Counts") + xlab("Feature")
-  
-  p.final <- plot_grid(p1 + theme(legend.position="none"),
-                       p2 + theme(legend.position="none"),
-                       align = "hv", rel_widths = c(0.75, 0.25))
-  p.legend <- get_legend(plot = p1)
-  p.final <- plot_grid(p.final, p.legend, rel_widths = c(3, .3))
-  return(p.final)
+    ylab("Mean Counts") + 
+    xlab("Feature") + 
+    theme_cowplot()
+  plots <- list(p1, p2)
+  if (combine) {
+    plots <- CombinePlots(
+      plots = plots, 
+      nrow = 1, 
+      legend = "right", 
+      rel_widths = c(0.8, 0.2)
+    )
+  }
+  return(plots)
 }
 
 
@@ -1439,6 +1451,8 @@ TCCBarPlot <- function(
 #' @param print.info Print some stats for each feature plotted
 #'
 #' @return Returns ggplot object
+#' @importFrom ggplot2 ggplot geom_point geom_segment facet_grid xlab scale_colour_manual geom_hline 
+#' @importFrom cowplot theme_cowplot
 #' @export
 #'
 TCCStemPlot <- function(
@@ -1458,12 +1472,12 @@ TCCStemPlot <- function(
     feature = character()
   )
   for(ff in feature) {
-    ecs <- as.numeric(x = TCCMap(
+    ecs <- TCCMap(
       object = object, 
       from = ff, 
       from.type = "GENE", 
       to = "EC"
-    ))
+    )
     data.plot <- rbind(
       data.plot, 
       data.frame(
@@ -1471,7 +1485,7 @@ TCCStemPlot <- function(
         umis = rowSums(x = GetAssayData(
           object = object, 
           assay = assay, 
-          slot = "counts")[ecs + 1, ]),
+          slot = "counts")[ecs, ]),
         feature = rep(x = ff, length(x = ecs))
       )
     )
@@ -1513,6 +1527,7 @@ TCCStemPlot <- function(
       geom_segment(aes(x = ecs, y = umis, xend = ecs, yend = 0, color = test)) + 
       facet_grid( . ~feature, drop = TRUE, scales = "free") +
       xlab("Equivalence Class") + 
+      theme_cowplot() +
       theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.title=element_blank()) +
       scale_colour_manual(values = c(ec.fail.color, ec.pass.color, multimap.color)) +
       geom_hline(yintercept = ec.threshold, linetype = "dashed", color = "red")
@@ -1521,7 +1536,8 @@ TCCStemPlot <- function(
       geom_segment(aes(ecs, umis, xend = ecs, yend = 0)) + 
       facet_grid( . ~feature, drop = TRUE, scales = "free") +
       xlab("Equivalence Class") + 
-      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.title = element_blank())
+      theme_cowplot() + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1), legend.title = element_blank()) 
   }
   if(log.scale) {
     p <- p + ylab("Log UMI Counts")

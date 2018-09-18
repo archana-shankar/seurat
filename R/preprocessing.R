@@ -17,6 +17,8 @@ NULL
 #' @param tcc.assay.name Name for tcc Assay object
 #' @param intersect.cells Return Seurat object with only cells with that also have TCC
 #' quantifications.
+#' @param min.ec.filter Only keep ECs with at least this many counts across all
+#' cells
 #' @param verbose prints output/progress bars
 #'
 #' @importFrom utils txtProgressBar setTxtProgressBar
@@ -33,6 +35,7 @@ AddTCC <- function(
   dataset = "hsapiens_gene_ensembl",
   tcc.assay.name = "tcc",
   intersect.cells = FALSE,
+  min.ec.filter = 0,
   verbose = TRUE
 ) {
   # Check for biomaRt
@@ -65,7 +68,10 @@ AddTCC <- function(
   cells.to.keep <- intersect(x = colnames(x = object), y = colnames(x = tcc.mat))
   object <- SubsetData(object = object, cells = cells.to.keep)
   cells.to.keep <- intersect(x = colnames(x = object), y = colnames(x = tcc.mat))
-  tcc.assay <- CreateAssayObject(counts = tcc.mat[, cells.to.keep])
+  ecs.to.keep <- which(Matrix::rowSums(tcc.mat) >= min.ec.filter)
+  tcc.mat <- tcc.mat[ecs.to.keep, cells.to.keep]
+  
+  tcc.assay <- CreateAssayObject(counts = tcc.mat)
   object[[tcc.assay.name]] <- tcc.assay
   
   ec.map <- as.matrix(
@@ -75,6 +81,7 @@ AddTCC <- function(
       sep = "\t",
       row.names = 1)
   )
+  ec.map <- ec.map[ecs.to.keep, ,drop = FALSE]
   gene.map <- as.matrix(
     read.table(
       file = gene.map,
@@ -145,8 +152,10 @@ AddTCC <- function(
   gene.to.ensg.ht <- HashTable()
   
   for(i in 1:nrow(x = ensg.map)) {
-    HashTableInsert(key = ensg.map[i, 1], value = ensg.map[i, 2], ht = ensg.to.gene.ht)
-    HashTableAdd(key = ensg.map[i, 2], value = ensg.map[i, 1], ht = gene.to.ensg.ht)
+    if (ensg.map[i, 1] %in% names(x = ensg.to.enst.ht)) {
+      HashTableInsert(key = ensg.map[i, 1], value = ensg.map[i, 2], ht = ensg.to.gene.ht)
+      HashTableAdd(key = ensg.map[i, 2], value = ensg.map[i, 1], ht = gene.to.ensg.ht)
+    }
     if (verbose) {
       setTxtProgressBar(pb, i + nrow(x = gene.map))
     }

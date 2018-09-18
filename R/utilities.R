@@ -644,7 +644,8 @@ MinMax <- function(data, min, max) {
 ECFilter <- function(object, assay, ecs, ec.threshold, return.type = "MAT", ambig = FALSE) {
   unique.ecs <- ECUniqueGene(
     ecs = ecs,
-    from_type = "EC",
+    ensg = FALSE,
+    verbose = FALSE,
     ec_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ec.to.enst.map,
     enst_to_ec = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ec.map,
     enst_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ensg.map,
@@ -654,7 +655,7 @@ ECFilter <- function(object, assay, ecs, ec.threshold, return.type = "MAT", ambi
   )
   multimapped <- ! ecs %in% unique.ecs
   threshold.pass <- RowSumsThreshold(
-    mat = GetAssayData(object = object, assay = assay, slot = "counts")[as.numeric(x = ecs) + 1, ], 
+    mat = GetAssayData(object = object, assay = assay, slot = "counts")[ecs, ], 
     threshold = ec.threshold
   )
   if (return.type == "EC") {
@@ -709,20 +710,39 @@ ExtractField <- function(string, field = 1, delim = "_") {
 #
 # @return returns a vector of ECs that map to the gene
 #
-GeneToECMap <- function(object, gene, ensg = FALSE, ambig = TRUE) {
+GeneToECMap <- function(object, gene, ensg = FALSE, ambig = TRUE, verbose = TRUE) {
   return(
     tryCatch(
-      GeneToECMapC(
-        gene = gene, 
-        ambig = ambig,
-        ensg = ensg,
-        ec_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ec.to.enst.map,
-        enst_to_ec = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ec.map,
-        enst_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ensg.map,
-        ensg_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.enst.map,
-        ensg_to_gene = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.gene.map,
-        gene_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$gene.to.ensg.map
-      ),
+      if (length(gene) == 1) {
+        GeneToECMapC(
+          gene = gene, 
+          ambig = ambig,
+          ensg = ensg,
+          verbose = verbose,
+          ec_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ec.to.enst.map,
+          enst_to_ec = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ec.map,
+          enst_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ensg.map,
+          ensg_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.enst.map,
+          ensg_to_gene = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.gene.map,
+          gene_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$gene.to.ensg.map
+        )
+      } else {
+        mapping <- GenesToECMap(
+          gene = gene, 
+          ambig = ambig,
+          ensg = ensg,
+          verbose = verbose,
+          ec_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ec.to.enst.map,
+          enst_to_ec = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ec.map,
+          enst_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$enst.to.ensg.map,
+          ensg_to_enst = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.enst.map,
+          ensg_to_gene = slot(object = object, name = "tools")[["tcc.maps"]]$ensg.to.gene.map,
+          gene_to_ensg = slot(object = object, name = "tools")[["tcc.maps"]]$gene.to.ensg.map
+        )
+        names(mapping) <- gene
+        return(mapping)
+      }
+      ,
       error = function(e) {
         stop(paste0("Cannot find feature: ", gene, "\n  Note: ensg has been set to ", ensg))
       }

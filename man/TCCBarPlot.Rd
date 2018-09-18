@@ -5,7 +5,7 @@
 \title{Barplot to visualize EC and feature-level differences}
 \usage{
 TCCBarPlot(object, assay = "tcc", feature, group.by = NULL, group1,
-  group2, ec.threshold, ambig = FALSE)
+  group2, ec.threshold, ambig = FALSE, combine = TRUE)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -23,6 +23,9 @@ TCCBarPlot(object, assay = "tcc", feature, group.by = NULL, group1,
 \item{ec.threshold}{Minimum counts per cell}
 
 \item{ambig}{Include ECs mapping to more than one gene?}
+
+\item{combine}{Combine plots into a single gg object; note that if TRUE; 
+themeing will not work when plotting multiple features}
 }
 \value{
 Returns ggplot object
