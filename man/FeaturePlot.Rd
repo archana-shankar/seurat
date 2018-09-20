@@ -7,10 +7,10 @@
 \usage{
 FeaturePlot(object, features, dims = c(1, 2), cells = NULL,
   cols = c("lightgrey", "blue"), pt.size = NULL, min.cutoff = NA,
-  max.cutoff = NA, reduction = "tsne", group.by = NULL,
-  split.by = NULL, shape.by = NULL, order = NULL, label = FALSE,
-  label.size = 4, ncol = NULL, combine = TRUE, coord.fixed = FALSE,
-  ...)
+  max.cutoff = NA, reduction = "tsne", split.by = NULL,
+  shape.by = NULL, blend = FALSE, blend.threshold = 0.5,
+  order = NULL, label = FALSE, label.size = 4, ncol = NULL,
+  combine = TRUE, coord.fixed = FALSE, ...)
 }
 \arguments{
 \item{object}{Seurat object}
@@ -33,13 +33,15 @@ color scale or vector of colors. Note: this will bin the data into number of col
 
 \item{reduction}{Which dimensionality reduction to use}
 
-\item{group.by}{Group (color) cells in different ways (for example, orig.ident)}
-
 \item{split.by}{A factor in object metadata to split the feature plot by, pass 'ident' to split by cell identity'; similar to the old \code{FeatureHeatmap}}
 
 \item{shape.by}{If NULL, all points are circles (default). You can specify any
 cell attribute (that can be pulled with FetchData) allowing for both
 different colors and different shapes on cells}
+
+\item{blend}{Scale and blend expression values to visualize coexpression of two features}
+
+\item{blend.threshold}{The color cutoff from weak signal to strong signal; ranges from 0 to 1.}
 
 \item{order}{Specify the order of plotting for the idents. This can be
 useful for crowded plots if points of interest are being buried. Provide
@@ -53,7 +55,7 @@ either a full list of valid idents or a subset to be plotted last (on top)}
 
 \item{combine}{Combine plots into a single gg object; note that if TRUE; themeing will not work when plotting multiple features}
 
-\item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio.}
+\item{coord.fixed}{Plot cartesian coordinates with fixed aspect ratio}
 
 \item{...}{Ignored for now}
 }

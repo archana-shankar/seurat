@@ -783,6 +783,16 @@ HashTableAdd <- function(key, value, ht) {
 #
 HashTableInsert <- function(key, value, ht)  ht[[key]] <- value
 
+# Interleave vectors together
+#
+# @param ... Vectors to be interleaved
+#
+# @return A vector with the values from each vector in ... interleaved
+#
+Interleave <- function(...) {
+  return(as.vector(x = t(x = as.data.frame(x = list(...)))))
+}
+
 # Check if a matrix is empty
 #
 # Takes a matrix and asks if it's empty (either 0x0 or 1x1 with a value of NA)
@@ -799,6 +809,8 @@ IsMatrixEmpty <- function(x) {
 
 # Documentation
 # Internal, not documented for now
+#
+#' @importFrom lars lars predict.lars
 #
 LassoFxn <- function(
   lasso.input,
@@ -901,7 +913,7 @@ LogSeuratCommand <- function(object, return.command = FALSE) {
 #
 # @return Returns a scrambled matrix, where each row is shuffled independently
 #
-# @importFrom stats runif
+#' @importFrom stats runif
 #
 # @export
 #
