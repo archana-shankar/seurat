@@ -463,6 +463,11 @@ FindMarkers.default <- function(
 #' @param ident.2 A second identity class for comparison. If NULL (default) -
 #' use all other cells for comparison.
 #' @param assay Assay to use in differential expression testing
+#' @param tcc Run differential expression using TCC counts
+#' @param ensg Boolean determining whether the features being provided are 
+#' ensemble gene ids
+#' @param ambig.tccs When performing logistic regression on TCCS, this determines
+#' whether to allow TCCs that are multi-mapped.
 #'
 #' @describeIn FindMarkers Run differential expression test on a Seurat object
 #' @importFrom pbapply pblapply

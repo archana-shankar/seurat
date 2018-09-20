@@ -103,12 +103,20 @@ calculating logFC. 1 by default.}
 
 \item{cells.2}{Vector of cell names belonging to group 2}
 
+\item{tcc}{Run differential expression using TCC counts}
+
 \item{ident.1}{Identity class to define markers for}
 
 \item{ident.2}{A second identity class for comparison. If NULL (default) -
 use all other cells for comparison.}
 
 \item{assay}{Assay to use in differential expression testing}
+
+\item{ensg}{Boolean determining whether the features being provided are 
+ensemble gene ids}
+
+\item{ambig.tccs}{When performing logistic regression on TCCS, this determines
+whether to allow TCCs that are multi-mapped.}
 
 \item{print.bar}{Print a progress bar once expression testing begins (uses
 pbapply to do this)}
