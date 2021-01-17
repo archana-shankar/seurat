@@ -1059,23 +1059,27 @@ CreateSeuratObject.Assay <- function(
   assay.list <- list(counts)
   names(x = assay.list) <- assay
   # Set idents
-  idents <- factor(x = unlist(x = lapply(
-    X = colnames(x = counts),
-    FUN = ExtractField,
-    field = names.field,
-    delim = names.delim
-  )))
-  if (any(is.na(x = idents))) {
-    warning(
-      "Input parameters result in NA values for initial cell identities. Setting all initial idents to the project name",
-      call. = FALSE,
-      immediate. = TRUE
-    )
-  }
-  # if there are more than 100 idents, set all idents to ... name
-  ident.levels <- length(x = unique(x = idents))
-  if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
+  if (is.null(x = names.field) || is.null(x = names.delim)) {
     idents <- rep.int(x = factor(x = project), times = ncol(x = counts))
+  } else {
+    idents <- factor(x = unlist(x = lapply(
+      X = colnames(x = counts),
+      FUN = ExtractField,
+      field = names.field,
+      delim = names.delim
+    )))
+    if (any(is.na(x = idents))) {
+      warning(
+        "Input parameters result in NA values for initial cell identities. Setting all initial idents to the project name",
+        call. = FALSE,
+        immediate. = TRUE
+      )
+    }
+    # if there are more than 100 idents, set all idents to ... name
+    ident.levels <- length(x = unique(x = idents))
+    if (ident.levels > 100 || ident.levels == 0 || ident.levels == length(x = idents)) {
+      idents <- rep.int(x = factor(x = project), times = ncol(x = counts))
+    }
   }
   names(x = idents) <- colnames(x = counts)
   object <- new(
