@@ -620,7 +620,6 @@ FindTransferAnchors <- function(
     mapping.score.k = mapping.score.k
   )
   projected <- ifelse(test = reduction == "pcaproject", yes = TRUE, no = FALSE)
-  feature.mean <- NULL
   if (normalization.method == "SCT") {
     # ensure all residuals required are computed
     query <- suppressWarnings(expr = GetResidual(object = query, assay = query.assay, features = features, verbose = FALSE))
@@ -734,6 +733,7 @@ FindTransferAnchors <- function(
         query = query,
         dims = dims,
         feature.mean = feature.mean,
+        feature.sd = feature.sd
         verbose = verbose
       )
       orig.embeddings <- Embeddings(object = reference[[reference.reduction]])[, dims]
