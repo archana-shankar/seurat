@@ -590,7 +590,9 @@ FindTransferAnchors <- function(
   eps = 0,
   approx.pca = TRUE,
   mapping.score.k = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  feature.mean = NULL,
+  feauture.sd = NULL
 ) {
   # input validation
   ValidateParams_FindTransferAnchors(
@@ -703,7 +705,9 @@ FindTransferAnchors <- function(
         reduction = reference.reduction,
         query = reference,
         dims = dims,
-        verbose = verbose
+        verbose = verbose,
+        feature.mean = feature.mean,
+        feature.sd = feature.sd
       )
       orig.embeddings <- Embeddings(object = query[[reference.reduction]])[, dims]
       orig.loadings <- Loadings(object = query[[reference.reduction]])
