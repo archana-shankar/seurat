@@ -27,7 +27,9 @@ FindTransferAnchors(
   eps = 0,
   approx.pca = TRUE,
   mapping.score.k = NULL,
-  verbose = TRUE
+  verbose = TRUE,
+  feature.mean = NULL,
+  feature.sd = NULL
 )
 }
 \arguments{
@@ -104,6 +106,10 @@ on computing the mapping score and want to enable reuse of some downstream
 neighbor calculations to make the mapping score function more efficient.}
 
 \item{verbose}{Print progress bars and output}
+
+\item{feature.mean}{feature.mean}
+
+\item{feature.sd}{feature.sd}
 }
 \value{
 Returns an \code{AnchorSet} object that can be used as input to
