@@ -528,6 +528,8 @@ FindIntegrationAnchors <- function(
 #' on computing the mapping score and want to enable reuse of some downstream
 #' neighbor calculations to make the mapping score function more efficient.
 #' @param verbose Print progress bars and output
+#' @param feature.sd feature.sd
+#' @param feature.mean feature.mean
 #'
 #' @return Returns an \code{AnchorSet} object that can be used as input to
 #' \code{\link{TransferData}}
@@ -592,7 +594,7 @@ FindTransferAnchors <- function(
   mapping.score.k = NULL,
   verbose = TRUE,
   feature.mean = NULL,
-  feauture.sd = NULL
+  feature.sd = NULL
 ) {
   # input validation
   ValidateParams_FindTransferAnchors(
@@ -733,7 +735,7 @@ FindTransferAnchors <- function(
         query = query,
         dims = dims,
         feature.mean = feature.mean,
-        feature.sd = feature.sd
+        feature.sd = feature.sd,
         verbose = verbose
       )
       orig.embeddings <- Embeddings(object = reference[[reference.reduction]])[, dims]
@@ -3846,6 +3848,8 @@ ProjectCellEmbeddings <- function(
   query.assay <- query.assay %||% DefaultAssay(object = query)
   features <- rownames(x = Loadings(object = reference[[reduction]]))
   features <- intersect(x = features, y = rownames(x = query[[query.assay]]))
+  feature.mean <- feature.mean[features,1]
+  feature.sd <- feature.sd[features,1]
   reference.data <-  GetAssayData(
     object = reference,
     assay = reference.assay,
